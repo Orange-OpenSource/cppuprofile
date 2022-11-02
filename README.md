@@ -22,7 +22,14 @@ a single view:
 
 [IMG]
 
-This tool is written in Python and uses plotly.
+This tool is written in Python. It requires the following packages:
+* numpy
+* plotly
+* pandas
+
+```
+$ pip3 install numpy plotly pandas
+```
 
 ## Sample
 
