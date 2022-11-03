@@ -14,7 +14,6 @@
 
 #include "uprofile.h"
 #include "uprofileimpl.h"
-#include "util/memoryusage.h"
 
 using namespace std::chrono;
 
@@ -56,19 +55,19 @@ void startCPUUsageMonitoring(int period)
     UProfileImpl::getInstance()->startCPUUsageMonitoring(period);
 }
 
-void dumpProcessMemory()
+void getProcessMemory(int &rss, int &shared)
 {
-    UProfileImpl::getInstance()->dumpProcessMemory();
+    UProfileImpl::getInstance()->getProcessMemory(rss, shared);
 }
 
-void dumpSystemMemory()
+void getSystemMemory(int& totalMem, int& availableMem, int& freeMem)
 {
-    UProfileImpl::getInstance()->dumpSystemMemory();
+    UProfileImpl::getInstance()->getSystemMemory(totalMem, availableMem, freeMem);
 }
 
-void dumpCPUUsage()
+std::vector<float> getInstantCpuUsage()
 {
-    UProfileImpl::getInstance()->dumpCPUUsage();
+    return UProfileImpl::getInstance()->getInstantCpuUsage();
 }
 
 }

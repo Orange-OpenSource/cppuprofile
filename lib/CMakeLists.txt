@@ -4,19 +4,22 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
 SET( CMAKE_USE_RELATIVE_PATHS ON)
 
 ADD_DEFINITIONS( -std=c++0x )
+ADD_DEFINITIONS( -D_GLIBCXX_USE_NANOSLEEP )
 ADD_COMPILE_OPTIONS("-Wall")
 ADD_COMPILE_OPTIONS("-Werror")
 
 SET(UProfile_HEADERS
     uprofile.h
     uprofileimpl.h
-    util/memoryusage.h
+    util/timer.h
+    util/cpumonitor.h
 )
 
 SET(UProfile_IMPL
     uprofile.cpp
     uprofileimpl.cpp
-    util/memoryusage.cpp
+    util/timer.cpp
+    util/cpumonitor.cpp
 )
 
 SET(UProfile_SRCS
@@ -29,6 +32,13 @@ SET(LIBRARY_NAME ${PROJECT_NAME})
 ADD_LIBRARY(${LIBRARY_NAME} SHARED
     ${UProfile_SRCS}
 )
+
+# Specify the include directories exported by this library
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+TARGET_LINK_LIBRARIES(${LIBRARY_NAME} pthread)
 
 # Set specific pkg-config variables
 SET(PKG_CONFIG_LIBDIR

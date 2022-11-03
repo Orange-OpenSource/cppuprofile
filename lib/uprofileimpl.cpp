@@ -13,7 +13,8 @@
 #include <chrono>
 
 #include "uprofileimpl.h"
-#include "util/memoryusage.h"
+
+#include <unistd.h>
 
 using namespace std::chrono;
 
@@ -22,9 +23,7 @@ namespace uprofile {
 UProfileImpl *UProfileImpl::m_uprofiler = NULL;
 
 
-UProfileImpl::UProfileImpl():
-    m_cpuPreviousIdleTime(0),
-    m_cpuPreviousTotalTime(0)
+UProfileImpl::UProfileImpl()
 {
 }
 
@@ -67,8 +66,8 @@ void UProfileImpl::timeEnd(const std::string& title)
     auto it = m_steps.find(title);
     if (it != m_steps.end())
     {
-       write(ProfilingType::TIME_EXEC, { std::to_string((*it).second), title });
-       m_steps.erase(it);
+        write(ProfilingType::TIME_EXEC, { std::to_string((*it).second), title });
+        m_steps.erase(it);
     }
     else
     {
@@ -78,19 +77,34 @@ void UProfileImpl::timeEnd(const std::string& title)
 
 void UProfileImpl::startProcessMemoryMonitoring(int period)
 {
+    m_processMemoryMonitorTimer.setInterval(period);
+    m_processMemoryMonitorTimer.setTimeout([=](){
+        dumpProcessMemory();
+    });
+    m_processMemoryMonitorTimer.start();
 }
 
 void UProfileImpl::startSystemMemoryMonitoring(int period)
 {
+    m_systemMemoryMonitorTimer.setInterval(period);
+    m_systemMemoryMonitorTimer.setTimeout([=](){
+        dumpSystemMemory();
+    });
+    m_systemMemoryMonitorTimer.start();
 }
 
 void UProfileImpl::startCPUUsageMonitoring(int period)
 {
+    m_cpuMonitorTimer.setInterval(period);
+    m_cpuMonitorTimer.setTimeout([=](){
+        dumpCpuUsage();
+    });
+    m_cpuMonitorTimer.start();
 }
 
 void UProfileImpl::dumpProcessMemory()
 {
-    int rss, shared;
+    int rss = 0, shared = 0;
     getProcessMemory(rss, shared);
     write(ProfilingType::PROCESS_MEMORY, { std::to_string(rss), std::to_string(shared)});
 }
@@ -102,17 +116,31 @@ void UProfileImpl::dumpSystemMemory()
     write(ProfilingType::SYSTEM_MEMORY, { std::to_string(total), std::to_string(available), std::to_string(free)});
 }
 
-void UProfileImpl::dumpCPUUsage()
+void UProfileImpl::dumpCpuUsage()
 {
+    vector<float> cpuLoads = m_cpuMonitor.getUsage();
+    for (size_t index = 0; index < cpuLoads.size(); ++index) {
+        write(ProfilingType::CPU, { std::to_string(index), std::to_string(cpuLoads.at(index)) });
+    }
+}
+
+vector<float> UProfileImpl::getInstantCpuUsage()
+{
+    // To get instaneous CPU usage, we should wait at least one unit between two polling (aka: 100 ms)
+    m_cpuMonitor.getUsage();
+    usleep(100000);
+    return m_cpuMonitor.getUsage();
 }
 
 void UProfileImpl::stop()
 {
+    m_cpuMonitorTimer.stop();
     m_file.close();
 }
 
 void UProfileImpl::write(ProfilingType type, const std::list<std::string>& data)
 {
+    std::lock_guard<std::mutex> guard(m_fileMutex);
     if (m_file.is_open())
     {
         const char csvSeparator = ';';
@@ -132,10 +160,10 @@ void UProfileImpl::write(ProfilingType type, const std::list<std::string>& data)
             default: strType = "undefined";
                 break;
         }
-        m_file << strType.c_str() << csvSeparator << getTimeStamp() << csvSeparator;
-        for (auto str: data)
+        m_file << strType.c_str() << csvSeparator << getTimeStamp();
+        for (auto it = data.cbegin(); it != data.cend(); ++it)
         {
-            m_file << str << csvSeparator;
+            m_file << csvSeparator << *it;
         }
         m_file << "\n";
         m_file.flush();
@@ -145,6 +173,49 @@ void UProfileImpl::write(ProfilingType type, const std::list<std::string>& data)
 int UProfileImpl::getTimeStamp()
 { 
     return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+}
+
+
+void UProfileImpl::getSystemMemory(int &totalMem, int &availableMem, int &freeMem)
+{
+    // /proc/meminfo returns the dump here:
+    // MemTotal: 515164 kB
+    // MemFree: 7348 kB
+    // MemAvailable: 7348 kB
+    ifstream meminfo("/proc/meminfo");
+    string line;
+    while (std::getline(meminfo, line)) {
+        if (line.find("MemTotal") != std::string::npos) {
+            stringstream ls(line);
+            ls.ignore(256, ' ');
+            ls >> totalMem;
+        }
+        else if (line.find("MemFree") != std::string::npos) {
+            stringstream ls(line);
+            ls.ignore(256, ' ');
+            ls >> freeMem;
+        }
+        else if (line.find("MemAvailable") != std::string::npos) {
+            {
+                stringstream ls(line);
+                ls.ignore(256, ' ');
+                ls >> availableMem;
+                break;
+            }
+        }
+    }
+}
+
+void UProfileImpl::getProcessMemory(int &rss, int &shared)
+{
+    int tSize = 0, resident = 0, share = 0;
+    ifstream buffer("/proc/self/statm");
+    buffer >> tSize >> resident >> share;
+    buffer.close();
+
+    long page_size_kb = getpagesize() / 1024;
+    rss = resident * page_size_kb;
+    shared = share * page_size_kb;
 }
 
 }

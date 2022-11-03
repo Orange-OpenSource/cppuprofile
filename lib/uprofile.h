@@ -14,6 +14,7 @@
 #include <string>
 #include <fstream>
 #include <map>
+#include <vector>
 
 namespace uprofile
 {
@@ -67,19 +68,19 @@ namespace uprofile
     void startCPUUsageMonitoring(int period);
 
     /**
-     * @brief dumpProcessMemory: dump memory used by current process
+     * @brief getProcessMemory: return memory used by the current process
      */
-    void dumpProcessMemory();
+    void getProcessMemory(int& rss, int& shared);
 
     /**
-     * @brief dumpSystemMemory: dump global system memory used by current process
+     * @brief getSystemMemory: dump global system memory
      */
-    void dumpSystemMemory();
+    void getSystemMemory(int& totalMem, int& availableMem, int& freeMem);
 
     /**
-     * @brief dumpCPUUsage: dump cpu usage
+     * @brief getInstantCpuUsage: get usage of all cpu cores
      */
-    void dumpCPUUsage();
+    std::vector<float> getInstantCpuUsage();
 }
 
 #endif /* UPROFILE_H_ */
