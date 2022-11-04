@@ -20,15 +20,21 @@ application or integrated in a dedicated monitoring application.
 The project also brings a tool for displaying the different metrics in
 a single view:
 
-[IMG]
+![ScreenshotShowGraph](doc/show-graph-screenshot.png)
 
-This tool is written in Python. It requires the following packages:
+This tool is written in Python3. It requires the following packages:
 * numpy
 * plotly
 * pandas
 
 ```
 $ pip3 install numpy plotly pandas
+```
+
+Then
+
+```commandline
+$ ./tools/show-graph uprofile.log
 ```
 
 ## Sample
