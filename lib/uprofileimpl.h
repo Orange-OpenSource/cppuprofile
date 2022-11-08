@@ -53,13 +53,13 @@ private:
     UProfileImpl();
 
     void write(ProfilingType type, const std::list<std::string> &data);
-    static int getTimeStamp();
+    static unsigned long long getTimeSinceBoot();
 
     void dumpCpuUsage();
     void dumpProcessMemory();
     void dumpSystemMemory();
 
-    std::map<std::string, int> m_steps; // Store steps (title, start time)
+    std::map<std::string, unsigned long long> m_steps; // Store steps (title, start time)
     std::ofstream m_file;
     Timer m_processMemoryMonitorTimer;
     Timer m_systemMemoryMonitorTimer;

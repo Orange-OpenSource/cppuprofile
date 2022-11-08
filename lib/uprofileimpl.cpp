@@ -11,6 +11,7 @@
 #include <fstream>
 #include <iostream>
 #include <chrono>
+#include <sys/sysinfo.h>
 
 #include "uprofileimpl.h"
 
@@ -57,7 +58,7 @@ void UProfileImpl::start(const char* file)
 
 void UProfileImpl::timeBegin(const std::string& title)
 {
-    m_steps.insert(make_pair(title, getTimeStamp()));
+    m_steps.insert(make_pair(title, getTimeSinceBoot()));
 }
 
 void UProfileImpl::timeEnd(const std::string& title)
@@ -160,7 +161,7 @@ void UProfileImpl::write(ProfilingType type, const std::list<std::string>& data)
             default: strType = "undefined";
                 break;
         }
-        m_file << strType.c_str() << csvSeparator << getTimeStamp();
+        m_file << strType.c_str() << csvSeparator << getTimeSinceBoot();
         for (auto it = data.cbegin(); it != data.cend(); ++it)
         {
             m_file << csvSeparator << *it;
@@ -170,9 +171,15 @@ void UProfileImpl::write(ProfilingType type, const std::list<std::string>& data)
     }
 }
 
-int UProfileImpl::getTimeStamp()
-{ 
-    return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+unsigned long long UProfileImpl::getTimeSinceBoot()
+{
+    std::chrono::milliseconds uptime(0u);
+    double uptime_seconds;
+    if (std::ifstream("/proc/uptime", std::ios::in) >> uptime_seconds)
+    {
+      return static_cast<unsigned long long>(uptime_seconds*1000.0);
+    }
+    return 0;
 }
 
 
