@@ -17,57 +17,70 @@
 
 using namespace std::chrono;
 
+#ifdef PROFILE_ON
+#define UPROFILE_INSTANCE_CALL(func, args...) \
+        UProfileImpl::getInstance()->func(args);
+#define UPROFILE_INSTANCE_CALL_RETURN(func, args...) \
+        return UProfileImpl::getInstance()->func(args);
+#define UPROFILE_DESTROY_INSTANCE() \
+        UProfileImpl::destroyInstance();
+#else
+#define UPROFILE_INSTANCE_CALL(func, args...) (void)0;
+#define UPROFILE_INSTANCE_CALL_RETURN(func, args...) return {}
+#define UPROFILE_DESTROY_INSTANCE() (void)0;
+#endif
+
 namespace uprofile {
 
 void start(const char* file)
 {
-    UProfileImpl::getInstance()->start(file);
+    UPROFILE_INSTANCE_CALL(start, file);
 }
 
 void stop()
 {
-    UProfileImpl::getInstance()->stop();
-    UProfileImpl::destroyInstance();
+    UPROFILE_INSTANCE_CALL(stop);
+    UPROFILE_DESTROY_INSTANCE();
 }
 
 void timeBegin(const std::string &step)
 {
-    UProfileImpl::getInstance()->timeBegin(step);
+    UPROFILE_INSTANCE_CALL(timeBegin, step);
 }
 
 void timeEnd(const std::string &step)
 {
-    UProfileImpl::getInstance()->timeEnd(step);
+    UPROFILE_INSTANCE_CALL(timeEnd, step);
 }
 
 void startProcessMemoryMonitoring(int period)
 {
-    UProfileImpl::getInstance()->startProcessMemoryMonitoring(period);
+    UPROFILE_INSTANCE_CALL(startProcessMemoryMonitoring, period);
 }
 
 void startSystemMemoryMonitoring(int period)
 {
-    UProfileImpl::getInstance()->startSystemMemoryMonitoring(period);
+    UPROFILE_INSTANCE_CALL(startSystemMemoryMonitoring, period);
 }
 
 void startCPUUsageMonitoring(int period)
 {
-    UProfileImpl::getInstance()->startCPUUsageMonitoring(period);
+    UPROFILE_INSTANCE_CALL(startCPUUsageMonitoring, period);
 }
 
 void getProcessMemory(int &rss, int &shared)
 {
-    UProfileImpl::getInstance()->getProcessMemory(rss, shared);
+    UPROFILE_INSTANCE_CALL(getProcessMemory, rss, shared);
 }
 
 void getSystemMemory(int& totalMem, int& availableMem, int& freeMem)
 {
-    UProfileImpl::getInstance()->getSystemMemory(totalMem, availableMem, freeMem);
+    UPROFILE_INSTANCE_CALL(getSystemMemory, totalMem, availableMem, freeMem);
 }
 
 std::vector<float> getInstantCpuUsage()
 {
-    return UProfileImpl::getInstance()->getInstantCpuUsage();
+    UPROFILE_INSTANCE_CALL_RETURN(getInstantCpuUsage);
 }
 
 }
