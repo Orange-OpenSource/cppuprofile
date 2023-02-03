@@ -36,12 +36,6 @@ Then
 ```commandline
 $ ./tools/show-graph uprofile.log
 ```
-
-## Sample
-
-The project provides a C++ sample application called `uprof-sample` 
-that shows how to use the `cppuprofile` library.
-
 ## Build
 
 The build process is based on CMake. Minimum version is 2.8.
@@ -49,6 +43,17 @@ The build process is based on CMake. Minimum version is 2.8.
 ```commandline
 $ cmake --configure . -B ../build-cppuprofile
 $ cmake --build ../build-cppuprofile
+```
+
+## Sample
+
+The project provides a C++ sample application called `uprof-sample`
+that shows how to use the `cppuprofile` library. You can build it with `SAMPLE_ENABLED` option:
+
+```commandline
+$ cmake --configure . -B ../build-cppuprofile -DSAMPLE_ENABLED=ON
+$ cmake --build ../build-cppuprofile
+$ ../build-cppuprofile/sample/uprof-sample
 ```
 
 ## License
