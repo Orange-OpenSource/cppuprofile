@@ -45,6 +45,16 @@ $ cmake --configure . -B ../build-cppuprofile
 $ cmake --build ../build-cppuprofile
 ```
 
+## Disable profiling in Release mode
+
+If you want to disable profiling in Release mode or if you want to only enable profiling in particular cases, you can use the `PROFILE_ENABLED` option (set to `ON` by default).
+
+To disable the profiling:
+
+```commandline
+$ cmake --configure . -B ../build-cppuprofile -DPROFILE_ENABLED=OFF
+```
+
 ## Sample
 
 The project provides a C++ sample application called `uprof-sample`
