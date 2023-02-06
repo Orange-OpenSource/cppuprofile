@@ -11,11 +11,15 @@
 #include <fstream>
 #include <iostream>
 #include <chrono>
+
+#if defined(__linux__)
+#include <unistd.h>
 #include <sys/sysinfo.h>
+#elif defined(_WIN32)
+#include <windows.h>
+#endif
 
 #include "uprofileimpl.h"
-
-#include <unistd.h>
 
 using namespace std::chrono;
 
@@ -129,7 +133,7 @@ vector<float> UProfileImpl::getInstantCpuUsage()
 {
     // To get instaneous CPU usage, we should wait at least one unit between two polling (aka: 100 ms)
     m_cpuMonitor.getUsage();
-    usleep(100000);
+    this_thread::sleep_for(std::chrono::milliseconds(100));
     return m_cpuMonitor.getUsage();
 }
 
@@ -173,18 +177,25 @@ void UProfileImpl::write(ProfilingType type, const std::list<std::string>& data)
 
 unsigned long long UProfileImpl::getTimeSinceBoot()
 {
-    std::chrono::milliseconds uptime(0u);
+#if defined(__linux__)
     double uptime_seconds;
     if (std::ifstream("/proc/uptime", std::ios::in) >> uptime_seconds)
     {
       return static_cast<unsigned long long>(uptime_seconds*1000.0);
     }
     return 0;
+#elif defined(_WIN32)
+    return GetTickCount64();
+#else
+    return 0;
+#endif
 }
 
 
 void UProfileImpl::getSystemMemory(int &totalMem, int &availableMem, int &freeMem)
 {
+
+#if defined(__linux__)
     // /proc/meminfo returns the dump here:
     // MemTotal: 515164 kB
     // MemFree: 7348 kB
@@ -211,10 +222,13 @@ void UProfileImpl::getSystemMemory(int &totalMem, int &availableMem, int &freeMe
             }
         }
     }
+#endif
 }
 
 void UProfileImpl::getProcessMemory(int &rss, int &shared)
 {
+
+#if defined(__linux__)
     int tSize = 0, resident = 0, share = 0;
     ifstream buffer("/proc/self/statm");
     buffer >> tSize >> resident >> share;
@@ -223,6 +237,7 @@ void UProfileImpl::getProcessMemory(int &rss, int &shared)
     long page_size_kb = getpagesize() / 1024;
     rss = resident * page_size_kb;
     shared = share * page_size_kb;
+#endif
 }
 
 }

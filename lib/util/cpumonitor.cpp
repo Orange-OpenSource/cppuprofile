@@ -27,6 +27,7 @@ uprofile::CpuMonitor::~CpuMonitor()
 size_t uprofile::CpuMonitor::getNumberOfCPUCores()
 {
     size_t nbCores = 0;
+#if defined(__linux__)
     ifstream meminfo("/proc/cpuinfo");
     string str;
     while (getline(meminfo, str)) {
@@ -34,6 +35,7 @@ size_t uprofile::CpuMonitor::getNumberOfCPUCores()
             nbCores++;
         }
     }
+#endif
     return nbCores;
 }
 
@@ -59,6 +61,7 @@ void uprofile::CpuMonitor::extractCpuTimes(const string& cpuInfo, size_t &idleTi
 vector<float> uprofile::CpuMonitor::getUsage()
 {
     vector<float> usages;
+#if defined(__linux__)
     ifstream procStat("/proc/stat");
     // /proc/stat dumps the following info:
     //      user nice system idle iowait irq softirq
@@ -93,6 +96,7 @@ vector<float> uprofile::CpuMonitor::getUsage()
         }
 
     }
+#endif
 
     return usages;
 }

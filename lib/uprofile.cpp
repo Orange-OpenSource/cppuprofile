@@ -18,15 +18,15 @@
 using namespace std::chrono;
 
 #ifdef PROFILE_ON
-#define UPROFILE_INSTANCE_CALL(func, args...) \
-        UProfileImpl::getInstance()->func(args);
-#define UPROFILE_INSTANCE_CALL_RETURN(func, args...) \
-        return UProfileImpl::getInstance()->func(args);
+#define UPROFILE_INSTANCE_CALL(func, ...) \
+        UProfileImpl::getInstance()->func(__VA_ARGS__);
+#define UPROFILE_INSTANCE_CALL_RETURN(func, ...) \
+        return UProfileImpl::getInstance()->func(__VA_ARGS__);
 #define UPROFILE_DESTROY_INSTANCE() \
         UProfileImpl::destroyInstance();
 #else
-#define UPROFILE_INSTANCE_CALL(func, args...) (void)0;
-#define UPROFILE_INSTANCE_CALL_RETURN(func, args...) return {}
+#define UPROFILE_INSTANCE_CALL(func, ...) (void)0;
+#define UPROFILE_INSTANCE_CALL_RETURN(func, ...) return {}
 #define UPROFILE_DESTROY_INSTANCE() (void)0;
 #endif
 

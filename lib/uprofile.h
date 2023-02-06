@@ -16,6 +16,27 @@
 #include <map>
 #include <vector>
 
+// UPROFAPI is used to export public API functions from the DLL / shared library.
+#if defined(_UPROFILE_BUILD_SHARED)
+#if defined(_WIN32)
+/* Build as a Win32 DLL */
+#define UPROFAPI __declspec(dllexport)
+#elif defined(__linux__)
+/* Build as a shared library */
+#define UPROFAPI __attribute__((visibility("default")))
+#endif // if defined(_UPROFILE_BUILD_SHARED)
+
+#elif defined(UPROFILE_DLL)
+#if defined(_WIN32)
+/* Call uprofile as a Win32 DLL */
+#define UPROFAPI __declspec(dllimport)
+#endif // if defined(_WIN32)
+#endif // if defined(UPROFILE_DLL)
+
+#if !defined(UPROFAPI)
+#define UPROFAPI
+#endif
+
 namespace uprofile
 {
     /**
@@ -23,7 +44,7 @@ namespace uprofile
      * Start profiling to record steps.
      * Profiling report will be written in filepath given
      */
-    void start(const char *file);
+	UPROFAPI void start(const char* file);
 
     /**
      * @brief stop
@@ -32,7 +53,7 @@ namespace uprofile
      * Stopping profiler on no started profiler has no effect
      *
      */
-    void stop();
+	UPROFAPI void stop();
 
     /**
      * @brief timeBegin
@@ -40,47 +61,47 @@ namespace uprofile
      *
      * Record a new step with its timestamp since profiler start.
      */
-    void timeBegin(const std::string &title);
+	UPROFAPI void timeBegin(const std::string& title);
 
     /**
      * @brief timeEnd
      * Compute duration between time start and time end of same step
      * If no timeStart has been called before, time start is profiler init time
      */
-    void timeEnd(const std::string &title);
+	UPROFAPI void timeEnd(const std::string& title);
 
     /**
      * @brief startProcessMemoryMonitoring
      * @param period: period between two memory dump (in ms)
      */
-    void startProcessMemoryMonitoring(int period);
+	UPROFAPI void startProcessMemoryMonitoring(int period);
 
     /**
      * @brief startSystemMemoryMonitoring
      * @param period: period between two memory dump (in ms)
      */
-    void startSystemMemoryMonitoring(int period);
+	UPROFAPI void startSystemMemoryMonitoring(int period);
 
     /**
      * @brief startCPUUsageMonitoring
      * @param period: period between two cpu usage dump (in ms)
      */
-    void startCPUUsageMonitoring(int period);
+	UPROFAPI void startCPUUsageMonitoring(int period);
 
     /**
      * @brief getProcessMemory: return memory used by the current process
      */
-    void getProcessMemory(int& rss, int& shared);
+	UPROFAPI void getProcessMemory(int& rss, int& shared);
 
     /**
      * @brief getSystemMemory: dump global system memory
      */
-    void getSystemMemory(int& totalMem, int& availableMem, int& freeMem);
+	UPROFAPI void getSystemMemory(int& totalMem, int& availableMem, int& freeMem);
 
     /**
      * @brief getInstantCpuUsage: get usage of all cpu cores
      */
-    std::vector<float> getInstantCpuUsage();
+	UPROFAPI std::vector<float> getInstantCpuUsage();
 }
 
 #endif /* UPROFILE_H_ */
