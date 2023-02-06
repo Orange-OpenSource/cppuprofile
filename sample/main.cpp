@@ -7,7 +7,8 @@
 //
 // Author: Cédric CHEDALEUX <cedric.chedaleux@orange.com> et al
 
-#include <unistd.h>
+#include <thread>
+#include <chrono>
 #include <uprofile.h>
 #include <stdlib.h>
 
@@ -51,7 +52,7 @@ int main(int argc, char *argv[])
 
     // --- WAIT 5 SECONDS ---
     uprofile::timeBegin("Sleep1");
-    sleep(5);
+    std::this_thread::sleep_for(std::chrono::seconds(5));
     uprofile::timeEnd("Sleep1");
 
     // --- RELEASE MEMORY ---
@@ -63,7 +64,7 @@ int main(int argc, char *argv[])
 
     // --- WAIT 5 SECONDS ---
     uprofile::timeBegin("Sleep2");
-    sleep(5);
+	std::this_thread::sleep_for(std::chrono::seconds(5));
     uprofile::timeEnd("Sleep2");
 
     uprofile::stop();
