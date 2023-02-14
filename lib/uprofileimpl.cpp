@@ -28,7 +28,8 @@ namespace uprofile {
 UProfileImpl *UProfileImpl::m_uprofiler = NULL;
 
 
-UProfileImpl::UProfileImpl()
+UProfileImpl::UProfileImpl():
+    m_tsUnit(TimestampUnit::EPOCH_TIME)
 {
 }
 
@@ -62,7 +63,7 @@ void UProfileImpl::start(const char* file)
 
 void UProfileImpl::timeBegin(const std::string& title)
 {
-    m_steps.insert(make_pair(title, getTimeSinceBoot()));
+    m_steps.insert(make_pair(title, getTimestamp()));
 }
 
 void UProfileImpl::timeEnd(const std::string& title)
@@ -143,6 +144,11 @@ void UProfileImpl::stop()
     m_file.close();
 }
 
+void UProfileImpl::setTimestampUnit(TimestampUnit tsUnit)
+{
+    m_tsUnit = tsUnit;
+}
+
 void UProfileImpl::write(ProfilingType type, const std::list<std::string>& data)
 {
     std::lock_guard<std::mutex> guard(m_fileMutex);
@@ -165,7 +171,7 @@ void UProfileImpl::write(ProfilingType type, const std::list<std::string>& data)
             default: strType = "undefined";
                 break;
         }
-        m_file << strType.c_str() << csvSeparator << getTimeSinceBoot();
+        m_file << strType.c_str() << csvSeparator << getTimestamp();
         for (auto it = data.cbegin(); it != data.cend(); ++it)
         {
             m_file << csvSeparator << *it;
@@ -173,6 +179,15 @@ void UProfileImpl::write(ProfilingType type, const std::list<std::string>& data)
         m_file << "\n";
         m_file.flush();
     }
+}
+
+unsigned long long UProfileImpl::getTimestamp() const {
+	return (m_tsUnit == TimestampUnit::EPOCH_TIME ? getEpochTime() : getTimeSinceBoot());
+}
+
+unsigned long long UProfileImpl::getEpochTime() 
+{
+    return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 }
 
 unsigned long long UProfileImpl::getTimeSinceBoot()

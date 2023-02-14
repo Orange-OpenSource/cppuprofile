@@ -43,9 +43,12 @@ void stop()
     UPROFILE_DESTROY_INSTANCE();
 }
 
-void timeBegin(const std::string &step)
-{
-    UPROFILE_INSTANCE_CALL(timeBegin, step);
+void setTimestampUnit(TimestampUnit tsUnit) {
+	UPROFILE_INSTANCE_CALL(setTimestampUnit, tsUnit);
+}
+
+void timeBegin(const std::string& step) {
+	UPROFILE_INSTANCE_CALL(timeBegin, step);
 }
 
 void timeEnd(const std::string &step)

@@ -16,6 +16,8 @@
 #include <map>
 #include <vector>
 
+#include "timestampunit.h"
+
 // UPROFAPI is used to export public API functions from the DLL / shared library.
 #if defined(_UPROFILE_BUILD_SHARED)
 #if defined(_WIN32)
@@ -54,6 +56,16 @@ namespace uprofile
      *
      */
 	UPROFAPI void stop();
+
+    /**
+     * @brief setTimestampUnit
+     * Change the timestamp unit to record profiling metrics
+     *
+     * It should be called before calling start() method.
+     * 
+     * Note: default value is EPOCH_TIME
+     */
+	UPROFAPI void setTimestampUnit(TimestampUnit tsUnit);
 
     /**
      * @brief timeBegin
