@@ -72,6 +72,7 @@ private:
     CpuMonitor m_cpuMonitor;
 
     std::mutex m_fileMutex;
+    std::mutex m_stepsMutex;
 };
 
 }

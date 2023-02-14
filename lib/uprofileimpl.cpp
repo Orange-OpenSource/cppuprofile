@@ -63,17 +63,27 @@ void UProfileImpl::start(const char* file)
 
 void UProfileImpl::timeBegin(const std::string& title)
 {
+    std::lock_guard<std::mutex> guard(m_stepsMutex);
     m_steps.insert(make_pair(title, getTimestamp()));
 }
 
 void UProfileImpl::timeEnd(const std::string& title)
 {
+    unsigned long long beginTimestamp = 0;
+
     // Find step in the map
+    m_stepsMutex.lock();
     auto it = m_steps.find(title);
-    if (it != m_steps.end())
+	bool found = it != m_steps.end();
+    if (found) {
+	    beginTimestamp = (*it).second;
+	    m_steps.erase(it);
+    }
+	m_stepsMutex.unlock();
+
+    if (found)
     {
-        write(ProfilingType::TIME_EXEC, { std::to_string((*it).second), title });
-        m_steps.erase(it);
+        write(ProfilingType::TIME_EXEC, { std::to_string(beginTimestamp), title });
     }
     else
     {
