@@ -31,8 +31,13 @@ IF(PROFILE_ENABLED)
 	ENDIF()
 ENDIF()
 
-SET(UProfile_HEADERS
+SET(UProfile_PUBLIC_HEADERS
     uprofile.h
+    timestampunit.h
+)
+
+SET(UProfile_HEADERS
+    ${UProfile_PUBLIC_HEADERS}
     uprofileimpl.h
     util/timer.h
     util/cpumonitor.h
@@ -90,7 +95,7 @@ CONFIGURE_FILE(
 )
 
 # Install library project files
-INSTALL(FILES uprofile.h
+INSTALL(FILES ${UProfile_PUBLIC_HEADERS}
     DESTINATION include/${LIBRARY_NAME}
 )
 INSTALL(TARGETS ${LIBRARY_NAME}
