@@ -10,22 +10,21 @@
 #ifndef UPROFILEIMPL_H_
 #define UPROFILEIMPL_H_
 
-#include <list>
-#include <string>
-#include <fstream>
-#include <map>
-#include <mutex>
+#include "timestampunit.h"
 #include "util/cpumonitor.h"
 #include "util/timer.h"
-#include "timestampunit.h"
+#include <fstream>
+#include <list>
+#include <map>
+#include <mutex>
+#include <string>
 
 namespace uprofile
 {
 class UProfileImpl
 {
 public:
-    enum class ProfilingType
-    {
+    enum class ProfilingType {
         TIME_EXEC,
         TIME_EVENT,
         PROCESS_MEMORY,
@@ -33,16 +32,16 @@ public:
         CPU
     };
 
-    static UProfileImpl *getInstance();
+    static UProfileImpl* getInstance();
     static void destroyInstance();
     virtual ~UProfileImpl();
 
     // Implementation
-    void start(const char *file);
+    void start(const char* file);
     void stop();
     void setTimestampUnit(TimestampUnit tsUnit);
-    void timeBegin(const std::string &title);
-    void timeEnd(const std::string &title);
+    void timeBegin(const std::string& title);
+    void timeEnd(const std::string& title);
     void startProcessMemoryMonitoring(int period);
     void startSystemMemoryMonitoring(int period);
     void startCPUUsageMonitoring(int period);
@@ -51,11 +50,11 @@ public:
     vector<float> getInstantCpuUsage();
 
 private:
-    static UProfileImpl *m_uprofiler;
+    static UProfileImpl* m_uprofiler;
     UProfileImpl();
 
-    void write(ProfilingType type, const std::list<std::string> &data);
-    unsigned long long getTimestamp() const; 
+    void write(ProfilingType type, const std::list<std::string>& data);
+    unsigned long long getTimestamp() const;
     static unsigned long long getEpochTime();
     static unsigned long long getTimeSinceBoot();
 

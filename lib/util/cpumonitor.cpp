@@ -13,7 +13,7 @@
 
 using namespace std;
 
-uprofile::CpuMonitor::CpuMonitor():
+uprofile::CpuMonitor::CpuMonitor() :
     m_nbCpus(getNumberOfCPUCores())
 {
     m_lastIdleTimes.resize(m_nbCpus, 0);
@@ -39,7 +39,7 @@ size_t uprofile::CpuMonitor::getNumberOfCPUCores()
     return nbCores;
 }
 
-void uprofile::CpuMonitor::extractCpuTimes(const string& cpuInfo, size_t &idleTime, size_t &totalTime)
+void uprofile::CpuMonitor::extractCpuTimes(const string& cpuInfo, size_t& idleTime, size_t& totalTime)
 {
     // Remove 'cpu<index' word and
     // extract the idle time and sum all other times
@@ -92,12 +92,9 @@ vector<float> uprofile::CpuMonitor::getUsage()
                 m_lastTotalTimes[cpuIndex] = totalTime;
                 break;
             }
-
         }
-
     }
 #endif
 
     return usages;
 }
-

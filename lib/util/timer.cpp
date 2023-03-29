@@ -9,11 +9,10 @@
 
 #include "timer.h"
 
-Timer::Timer(int interval):
+Timer::Timer(int interval) :
     m_th(NULL),
     m_interval(interval)
 {
-
 }
 
 Timer::~Timer()
@@ -37,8 +36,7 @@ void Timer::start()
 {
     if (m_interval > 0 && m_th == NULL) {
         m_running = true;
-        m_th = new thread([=]()
-        {
+        m_th = new thread([=]() {
             while (m_running == true) {
                 this_thread::sleep_for(chrono::milliseconds(m_interval));
                 if (m_timeout) {
