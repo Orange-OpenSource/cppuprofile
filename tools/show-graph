@@ -11,11 +11,22 @@
 
 
 import argparse
-import plotly.figure_factory as ff
-from plotly.subplots import make_subplots
-import plotly.express as px
-import plotly.graph_objects as go
+
 import pandas as pd
+import plotly.express as px
+import plotly.figure_factory as ff
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+
+METRICS = {
+    'time_exec': 'Execution task',
+    'cpu': 'CPU load',
+    'sys_mem': 'System memory (in MB)',
+    'proc_mem': 'Process Memory (in MB)',
+    'gpu': 'GPU load',
+    'gpu_mem': 'GPU memory (in MB)'
+}
 
 
 def read(csv_file):
@@ -109,6 +120,94 @@ def create_proc_mem_graphs(df):
                          showlegend=True)
 
 
+def create_gpu_mem_graphs(df):
+    # 'gpu_mem' metrics (format is 'gpu_mem:<timestamp>:<total>:<used>')
+    if df.empty:
+        return None
+
+    names = ["Used", "Total"]
+    for index in range(2):
+        yield go.Scatter(x=pd.to_datetime(df['timestamp'], unit='ms'),
+                         y=(pd.to_numeric(df["extra_{}".format(index + 1)], downcast="integer") / 1000),
+                         name=names[index],
+                         showlegend=True)
+
+
+def create_gpu_usage_graphs(df):
+    # 'gpu' metrics (format is 'gpu:<timestamp>:<percentage_usage>')
+    if df.empty:
+        return None
+
+    yield go.Scatter(x=pd.to_datetime(df['timestamp'], unit='ms'),
+                     y=pd.to_numeric(df['extra_1']),
+                     name="GPU usage",
+                     showlegend=True)
+
+
+def build_graphs(input_file, metrics):
+
+    # Use a multiple subplots (https://plotly.com/python/subplots/) to display
+    # - the execution task graph
+    # - the CPU usage
+    # - the memory usage (system and process)
+    # - the GPU usage and memory
+    graph_titles = []
+    for metric in metrics:
+        graph_titles.append(METRICS[metric])
+
+    figs = make_subplots(rows=len(metrics),
+                         cols=1,
+                         shared_xaxes=True,
+                         vertical_spacing=0.025,
+                         subplot_titles=graph_titles
+                         )
+
+    with open(input_file) as file:
+        global_df = read(file)
+
+        row_index = 1
+        for metric in metrics:
+            if metric == 'time_exec':
+                # Display a grant graph for representing task execution durations
+                time_exec_df = gen_time_exec_df(filter_dataframe(global_df, metric))
+                if time_exec_df is not None:
+                    for trace in create_gantt_graph(time_exec_df).data:
+                        figs.add_trace(trace, row=row_index, col=1)
+            elif metric == 'cpu':
+                # Display all CPU usages in the same graph
+                for trace in create_cpu_graphs(filter_dataframe(global_df, metric)):
+                    figs.add_trace(trace, row=row_index, col=1)
+            elif metric == 'sys_mem':
+                # Display memory usage
+                for trace in create_sys_mem_graphs(filter_dataframe(global_df, metric)):
+                    figs.add_trace(trace, row=row_index, col=1)
+                figs.update_yaxes(row=row_index, col=1, rangemode="tozero")
+            elif metric == 'proc_mem':
+                # Display process memory usage
+                for trace in create_proc_mem_graphs(filter_dataframe(global_df, metric)):
+                    figs.add_trace(trace, row=row_index, col=1)
+                figs.update_yaxes(row=row_index, col=1, rangemode="tozero")
+            elif metric == 'gpu':
+                # Display gpu usage
+                for trace in create_gpu_usage_graphs(filter_dataframe(global_df, metric)):
+                    figs.add_trace(trace, row=row_index, col=1)
+                figs.update_yaxes(row=row_index, col=1, rangemode="tozero")
+            elif metric == 'gpu_mem':
+                # Display gpu memory
+                for trace in create_gpu_mem_graphs(filter_dataframe(global_df, 'gpu_mem')):
+                    figs.add_trace(trace, row=row_index, col=1)
+                figs.update_yaxes(row=row_index, col=1, rangemode="tozero")
+            row_index += 1
+
+    figs.update_layout(
+        height=1200,
+        xaxis_tickformat='%M:%S',
+        showlegend=False
+    )
+
+    return figs
+
+
 def main():
     """
     Show the duration task graph and the cpu usage graph on a single view
@@ -118,58 +217,22 @@ def main():
     parser.add_argument('INPUT_FILE', type=str, help='Input file that contains profiling data')
     parser.add_argument('--output', '-o', type=str,
                         help='Save the graph to the given HTML file')
+    parser.add_argument('--metric', type=str, dest='metrics', choices=METRICS.keys(), action='append', default=[],
+                        help='Select the metric to display')
     args = parser.parse_args()
 
     if args.INPUT_FILE is None:
         parser.error('no INPUT_FILE given')
 
-    # Use a multiple subplots (https://plotly.com/python/subplots/) to display
-    # - the duration task graph
-    # - the CPU usage
-    # - the memory usage (system and process)
-    figs = make_subplots(rows=4,
-                         cols=1,
-                         shared_xaxes=True,
-                         row_heights=[0.5, 0.2, 0.15, 0.15],
-                         vertical_spacing=0.025,
-                         subplot_titles=(
-                             "Execution graph", "CPU load", "System Memory (in MB)", "Process Memory (in MB)")
-                         )
+    if not args.metrics:
+        args.metrics = METRICS.keys()
 
-    with open(args.INPUT_FILE) as file:
-        global_df = read(file)
+    graphs = build_graphs(args.INPUT_FILE, args.metrics)
+    graphs.show()
 
-        # Display a grant graph for representing task execution durations
-        time_exec_df = gen_time_exec_df(filter_dataframe(global_df, 'time_exec'))
-        if time_exec_df is not None:
-            for trace in create_gantt_graph(time_exec_df).data:
-                figs.add_trace(trace, row=1, col=1)
-
-        # Display all CPU usages in the same graph
-        for trace in create_cpu_graphs(filter_dataframe(global_df, 'cpu')):
-            figs.add_trace(trace, row=2, col=1)
-
-        # Display memory usage
-        for trace in create_sys_mem_graphs(filter_dataframe(global_df, 'sys_mem')):
-            figs.add_trace(trace, row=3, col=1)
-        figs.update_yaxes(row=3, col=1, rangemode="tozero")
-
-        # Display process memory usage
-        for trace in create_proc_mem_graphs(filter_dataframe(global_df, 'proc_mem')):
-            figs.add_trace(trace, row=4, col=1)
-        figs.update_yaxes(row=4, col=1, rangemode="tozero")
-
-        figs.update_layout(
-            height=1200,
-            xaxis_tickformat='%M:%S',
-            showlegend=False
-        )
-
-        figs.show()
-
-        if args.output is not None:
-            print("Saving graph to '{}'".format(args.output))
-            figs.write_html(args.output)
+    if args.output is not None:
+        print("Saving graph to '{}'".format(args.output))
+        graphs.write_html(args.output)
 
 
 if __name__ == '__main__':
