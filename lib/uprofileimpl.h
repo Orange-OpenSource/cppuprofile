@@ -10,6 +10,7 @@
 #ifndef UPROFILEIMPL_H_
 #define UPROFILEIMPL_H_
 
+#include "igpumonitor.h"
 #include "timestampunit.h"
 #include "util/cpumonitor.h"
 #include "util/timer.h"
@@ -29,7 +30,9 @@ public:
         TIME_EVENT,
         PROCESS_MEMORY,
         SYSTEM_MEMORY,
-        CPU
+        CPU,
+        GPU_USAGE,
+        GPU_MEMORY
     };
 
     static UProfileImpl* getInstance();
@@ -39,12 +42,16 @@ public:
     // Implementation
     void start(const char* file);
     void stop();
+    void addGPUMonitor(IGPUMonitor* monitor);
+    void removeGPUMonitor();
     void setTimestampUnit(TimestampUnit tsUnit);
     void timeBegin(const std::string& title);
     void timeEnd(const std::string& title);
     void startProcessMemoryMonitoring(int period);
     void startSystemMemoryMonitoring(int period);
     void startCPUUsageMonitoring(int period);
+    void startGPUUsageMonitoring(int period);
+    void startGPUMemoryMonitoring(int period);
     void getProcessMemory(int& rss, int& shared);
     void getSystemMemory(int& totalMem, int& availableMem, int& freeMem);
     vector<float> getInstantCpuUsage();
@@ -61,6 +68,8 @@ private:
     void dumpCpuUsage();
     void dumpProcessMemory();
     void dumpSystemMemory();
+    void dumpGpuUsage();
+    void dumpGpuMemory();
 
     TimestampUnit m_tsUnit;
     std::map<std::string, unsigned long long> m_steps; // Store steps (title, start time)
@@ -68,7 +77,10 @@ private:
     Timer m_processMemoryMonitorTimer;
     Timer m_systemMemoryMonitorTimer;
     Timer m_cpuMonitorTimer;
+    Timer m_gpuUsageMonitorTimer;
+    Timer m_gpuMemoryMonitorTimer;
     CpuMonitor m_cpuMonitor;
+    IGPUMonitor* m_gpuMonitor;
 
     std::mutex m_fileMutex;
     std::mutex m_stepsMutex;

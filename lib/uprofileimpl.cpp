@@ -27,9 +27,9 @@ namespace uprofile
 {
 
 UProfileImpl* UProfileImpl::m_uprofiler = NULL;
-
 UProfileImpl::UProfileImpl() :
-    m_tsUnit(TimestampUnit::EPOCH_TIME)
+    m_tsUnit(TimestampUnit::EPOCH_TIME),
+    m_gpuMonitor(NULL)
 {
 }
 
@@ -49,6 +49,7 @@ void UProfileImpl::destroyInstance()
 
 UProfileImpl::~UProfileImpl()
 {
+    removeGPUMonitor();
 }
 
 void UProfileImpl::start(const char* file)
@@ -57,6 +58,26 @@ void UProfileImpl::start(const char* file)
     if (!m_file.is_open()) {
         std::cerr << "Failed to open file: " << file << std::endl;
     }
+}
+
+void UProfileImpl::addGPUMonitor(IGPUMonitor* monitor)
+{
+    if (!monitor) {
+        std::cerr << "Invalid GPU Monitor" << std::endl;
+        return;
+    }
+
+    if (!m_gpuMonitor) {
+        removeGPUMonitor();
+    }
+
+    m_gpuMonitor = monitor;
+}
+
+void UProfileImpl::removeGPUMonitor()
+{
+    delete m_gpuMonitor;
+    m_gpuMonitor = NULL;
 }
 
 void UProfileImpl::timeBegin(const std::string& title)
@@ -113,6 +134,34 @@ void UProfileImpl::startCPUUsageMonitoring(int period)
     m_cpuMonitorTimer.start();
 }
 
+void UProfileImpl::startGPUUsageMonitoring(int period)
+{
+    if (!m_gpuMonitor) {
+        std::cerr << "Cannot monitor GPU usage: no GPUMonitor set!" << std::endl;
+        return;
+    }
+
+    m_gpuUsageMonitorTimer.setInterval(period);
+    m_gpuUsageMonitorTimer.setTimeout([=]() {
+        dumpGpuUsage();
+    });
+    m_gpuUsageMonitorTimer.start();
+}
+
+void UProfileImpl::startGPUMemoryMonitoring(int period)
+{
+    if (!m_gpuMonitor) {
+        std::cerr << "Cannot monitor GPU memory: no GPUMonitor set!" << std::endl;
+        return;
+    }
+
+    m_gpuMemoryMonitorTimer.setInterval(period);
+    m_gpuMemoryMonitorTimer.setTimeout([=]() {
+        dumpGpuMemory();
+    });
+    m_gpuMemoryMonitorTimer.start();
+}
+
 void UProfileImpl::dumpProcessMemory()
 {
     int rss = 0, shared = 0;
@@ -133,6 +182,23 @@ void UProfileImpl::dumpCpuUsage()
     for (size_t index = 0; index < cpuLoads.size(); ++index) {
         write(ProfilingType::CPU, {std::to_string(index), std::to_string(cpuLoads.at(index))});
     }
+}
+
+void UProfileImpl::dumpGpuUsage()
+{
+    if (!m_gpuMonitor) {
+        return;
+    }
+
+    float usage = m_gpuMonitor->getUsage();
+    write(ProfilingType::GPU_USAGE, {std::to_string(usage)});
+}
+
+void UProfileImpl::dumpGpuMemory()
+{
+    int usedMem, totalMem;
+    m_gpuMonitor->getMemory(usedMem, totalMem);
+    write(ProfilingType::GPU_MEMORY, {std::to_string(usedMem), std::to_string(totalMem)});
 }
 
 vector<float> UProfileImpl::getInstantCpuUsage()
@@ -175,6 +241,12 @@ void UProfileImpl::write(ProfilingType type, const std::list<std::string>& data)
             break;
         case ProfilingType::CPU:
             strType = "cpu";
+            break;
+        case ProfilingType::GPU_USAGE:
+            strType = "gpu";
+            break;
+        case ProfilingType::GPU_MEMORY:
+            strType = "gpu_mem";
             break;
         default:
             strType = "undefined";

@@ -45,6 +45,16 @@ void stop()
     UPROFILE_DESTROY_INSTANCE();
 }
 
+void addGPUMonitor(IGPUMonitor* monitor)
+{
+    UPROFILE_INSTANCE_CALL(addGPUMonitor, monitor);
+}
+
+void removeGPUMonitor()
+{
+    UPROFILE_INSTANCE_CALL(removeGPUMonitor);
+}
+
 void setTimestampUnit(TimestampUnit tsUnit)
 {
     UPROFILE_INSTANCE_CALL(setTimestampUnit, tsUnit);
@@ -73,6 +83,16 @@ void startSystemMemoryMonitoring(int period)
 void startCPUUsageMonitoring(int period)
 {
     UPROFILE_INSTANCE_CALL(startCPUUsageMonitoring, period);
+}
+
+void startGPUUsageMonitoring(int period)
+{
+    UPROFILE_INSTANCE_CALL(startGPUUsageMonitoring, period);
+}
+
+void startGPUMemoryMonitoring(int period)
+{
+    UPROFILE_INSTANCE_CALL(startGPUMemoryMonitoring, period);
 }
 
 void getProcessMemory(int& rss, int& shared)

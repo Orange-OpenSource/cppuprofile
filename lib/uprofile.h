@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 
+#include "igpumonitor.h"
 #include "timestampunit.h"
 
 // UPROFAPI is used to export public API functions from the DLL / shared library.
@@ -56,6 +57,22 @@ UPROFAPI void start(const char* file);
  *
  */
 UPROFAPI void stop();
+
+/**
+ * @brief addGPUMonitor
+ * @param monitor: custom GPUMonitor object
+ * Inject a GPUMonitor object that will be responsible for doing
+ * the GPU monitoring (usage and memory)
+ *
+ * Note: uprofile takes ownership of passed object.
+ */
+UPROFAPI void addGPUMonitor(IGPUMonitor* monitor);
+
+/**
+ * @brief removeGPUMonitor
+ * Destroy injected GPUMonitor object
+ */
+UPROFAPI void removeGPUMonitor();
 
 /**
  * @brief setTimestampUnit
@@ -99,6 +116,18 @@ UPROFAPI void startSystemMemoryMonitoring(int period);
  * @param period: period between two cpu usage dump (in ms)
  */
 UPROFAPI void startCPUUsageMonitoring(int period);
+
+/**
+ * @brief startGPUUsageMonitoring
+ * @param period: period between two gpu usage dump (in ms)
+ */
+UPROFAPI void startGPUUsageMonitoring(int period);
+
+/**
+ * @brief startGPUMemoryMonitoring
+ * @param period: period between two gpu usage dump (in ms)
+ */
+UPROFAPI void startGPUMemoryMonitoring(int period);
 
 /**
  * @brief getProcessMemory: return memory used by the current process
