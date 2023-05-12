@@ -37,18 +37,23 @@ SET(UProfile_PUBLIC_HEADERS
     igpumonitor.h
 )
 
-SET(UProfile_HEADERS
-    ${UProfile_PUBLIC_HEADERS}
-    uprofileimpl.h
-    util/timer.h
-    util/cpumonitor.h
-)
-
 SET(UProfile_IMPL
     uprofile.cpp
     uprofileimpl.cpp
     util/timer.cpp
     util/cpumonitor.cpp
+)
+
+IF(GPU_MONITOR_NVIDIA)
+   LIST(APPEND UProfile_PUBLIC_HEADERS monitors/nvidiamonitor.h)
+   LIST(APPEND UProfile_IMPL monitors/nvidiamonitor.cpp)
+ENDIF()
+
+SET(UProfile_HEADERS
+    ${UProfile_PUBLIC_HEADERS}
+    uprofileimpl.h
+    util/timer.h
+    util/cpumonitor.h
 )
 
 SET(UProfile_SRCS
