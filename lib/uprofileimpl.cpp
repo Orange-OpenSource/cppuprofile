@@ -7,14 +7,14 @@
 //
 // Author: Cédric CHEDALEUX <cedric.chedaleux@orange.com> et al.
 
-#include <sstream>
+#include <chrono>
 #include <fstream>
 #include <iostream>
-#include <chrono>
+#include <sstream>
 
 #if defined(__linux__)
-#include <unistd.h>
 #include <sys/sysinfo.h>
+#include <unistd.h>
 #elif defined(_WIN32)
 #include <windows.h>
 #endif
@@ -23,20 +23,19 @@
 
 using namespace std::chrono;
 
-namespace uprofile {
+namespace uprofile
+{
 
-UProfileImpl *UProfileImpl::m_uprofiler = NULL;
-
-
-UProfileImpl::UProfileImpl():
-    m_tsUnit(TimestampUnit::EPOCH_TIME)
+UProfileImpl* UProfileImpl::m_uprofiler = NULL;
+UProfileImpl::UProfileImpl() :
+    m_tsUnit(TimestampUnit::EPOCH_TIME),
+    m_gpuMonitor(NULL)
 {
 }
 
-UProfileImpl *UProfileImpl::getInstance()
+UProfileImpl* UProfileImpl::getInstance()
 {
-    if (!m_uprofiler)
-    {
+    if (!m_uprofiler) {
         m_uprofiler = new UProfileImpl;
     }
     return m_uprofiler;
@@ -50,15 +49,35 @@ void UProfileImpl::destroyInstance()
 
 UProfileImpl::~UProfileImpl()
 {
+    removeGPUMonitor();
 }
 
 void UProfileImpl::start(const char* file)
 {
     m_file.open(file, std::ios::out);
-    if (!m_file.is_open())
-    {
+    if (!m_file.is_open()) {
         std::cerr << "Failed to open file: " << file << std::endl;
     }
+}
+
+void UProfileImpl::addGPUMonitor(IGPUMonitor* monitor)
+{
+    if (!monitor) {
+        std::cerr << "Invalid GPU Monitor" << std::endl;
+        return;
+    }
+
+    if (!m_gpuMonitor) {
+        removeGPUMonitor();
+    }
+
+    m_gpuMonitor = monitor;
+}
+
+void UProfileImpl::removeGPUMonitor()
+{
+    delete m_gpuMonitor;
+    m_gpuMonitor = NULL;
 }
 
 void UProfileImpl::timeBegin(const std::string& title)
@@ -74,27 +93,24 @@ void UProfileImpl::timeEnd(const std::string& title)
     // Find step in the map
     m_stepsMutex.lock();
     auto it = m_steps.find(title);
-	bool found = it != m_steps.end();
+    bool found = it != m_steps.end();
     if (found) {
-	    beginTimestamp = (*it).second;
-	    m_steps.erase(it);
+        beginTimestamp = (*it).second;
+        m_steps.erase(it);
     }
-	m_stepsMutex.unlock();
+    m_stepsMutex.unlock();
 
-    if (found)
-    {
-        write(ProfilingType::TIME_EXEC, { std::to_string(beginTimestamp), title });
-    }
-    else
-    {
-        write(ProfilingType::TIME_EVENT, { title });
+    if (found) {
+        write(ProfilingType::TIME_EXEC, {std::to_string(beginTimestamp), title});
+    } else {
+        write(ProfilingType::TIME_EVENT, {title});
     }
 }
 
 void UProfileImpl::startProcessMemoryMonitoring(int period)
 {
     m_processMemoryMonitorTimer.setInterval(period);
-    m_processMemoryMonitorTimer.setTimeout([=](){
+    m_processMemoryMonitorTimer.setTimeout([=]() {
         dumpProcessMemory();
     });
     m_processMemoryMonitorTimer.start();
@@ -103,7 +119,7 @@ void UProfileImpl::startProcessMemoryMonitoring(int period)
 void UProfileImpl::startSystemMemoryMonitoring(int period)
 {
     m_systemMemoryMonitorTimer.setInterval(period);
-    m_systemMemoryMonitorTimer.setTimeout([=](){
+    m_systemMemoryMonitorTimer.setTimeout([=]() {
         dumpSystemMemory();
     });
     m_systemMemoryMonitorTimer.start();
@@ -112,32 +128,77 @@ void UProfileImpl::startSystemMemoryMonitoring(int period)
 void UProfileImpl::startCPUUsageMonitoring(int period)
 {
     m_cpuMonitorTimer.setInterval(period);
-    m_cpuMonitorTimer.setTimeout([=](){
+    m_cpuMonitorTimer.setTimeout([=]() {
         dumpCpuUsage();
     });
     m_cpuMonitorTimer.start();
+}
+
+void UProfileImpl::startGPUUsageMonitoring(int period)
+{
+    if (!m_gpuMonitor) {
+        std::cerr << "Cannot monitor GPU usage: no GPUMonitor set!" << std::endl;
+        return;
+    }
+
+    m_gpuUsageMonitorTimer.setInterval(period);
+    m_gpuUsageMonitorTimer.setTimeout([=]() {
+        dumpGpuUsage();
+    });
+    m_gpuUsageMonitorTimer.start();
+}
+
+void UProfileImpl::startGPUMemoryMonitoring(int period)
+{
+    if (!m_gpuMonitor) {
+        std::cerr << "Cannot monitor GPU memory: no GPUMonitor set!" << std::endl;
+        return;
+    }
+
+    m_gpuMemoryMonitorTimer.setInterval(period);
+    m_gpuMemoryMonitorTimer.setTimeout([=]() {
+        dumpGpuMemory();
+    });
+    m_gpuMemoryMonitorTimer.start();
 }
 
 void UProfileImpl::dumpProcessMemory()
 {
     int rss = 0, shared = 0;
     getProcessMemory(rss, shared);
-    write(ProfilingType::PROCESS_MEMORY, { std::to_string(rss), std::to_string(shared)});
+    write(ProfilingType::PROCESS_MEMORY, {std::to_string(rss), std::to_string(shared)});
 }
 
 void UProfileImpl::dumpSystemMemory()
 {
     int total = 0, available = 0, free = 0;
     getSystemMemory(total, available, free);
-    write(ProfilingType::SYSTEM_MEMORY, { std::to_string(total), std::to_string(available), std::to_string(free)});
+    write(ProfilingType::SYSTEM_MEMORY, {std::to_string(total), std::to_string(available), std::to_string(free)});
 }
 
 void UProfileImpl::dumpCpuUsage()
 {
     vector<float> cpuLoads = m_cpuMonitor.getUsage();
     for (size_t index = 0; index < cpuLoads.size(); ++index) {
-        write(ProfilingType::CPU, { std::to_string(index), std::to_string(cpuLoads.at(index)) });
+        write(ProfilingType::CPU, {std::to_string(index), std::to_string(cpuLoads.at(index))});
     }
+}
+
+void UProfileImpl::dumpGpuUsage()
+{
+    if (!m_gpuMonitor) {
+        return;
+    }
+
+    float usage = m_gpuMonitor->getUsage();
+    write(ProfilingType::GPU_USAGE, {std::to_string(usage)});
+}
+
+void UProfileImpl::dumpGpuMemory()
+{
+    int usedMem, totalMem;
+    m_gpuMonitor->getMemory(usedMem, totalMem);
+    write(ProfilingType::GPU_MEMORY, {std::to_string(usedMem), std::to_string(totalMem)});
 }
 
 vector<float> UProfileImpl::getInstantCpuUsage()
@@ -162,28 +223,37 @@ void UProfileImpl::setTimestampUnit(TimestampUnit tsUnit)
 void UProfileImpl::write(ProfilingType type, const std::list<std::string>& data)
 {
     std::lock_guard<std::mutex> guard(m_fileMutex);
-    if (m_file.is_open())
-    {
+    if (m_file.is_open()) {
         const char csvSeparator = ';';
         std::string strType;
-        switch (type)
-        {
-            case ProfilingType::TIME_EXEC: strType = "time_exec";
-                break;
-            case ProfilingType::TIME_EVENT: strType = "time_event";
-                break;
-            case ProfilingType::PROCESS_MEMORY: strType = "proc_mem";
-                break;
-            case ProfilingType::SYSTEM_MEMORY: strType = "sys_mem";
-                break;
-            case ProfilingType::CPU: strType = "cpu";
-                break;
-            default: strType = "undefined";
-                break;
+        switch (type) {
+        case ProfilingType::TIME_EXEC:
+            strType = "time_exec";
+            break;
+        case ProfilingType::TIME_EVENT:
+            strType = "time_event";
+            break;
+        case ProfilingType::PROCESS_MEMORY:
+            strType = "proc_mem";
+            break;
+        case ProfilingType::SYSTEM_MEMORY:
+            strType = "sys_mem";
+            break;
+        case ProfilingType::CPU:
+            strType = "cpu";
+            break;
+        case ProfilingType::GPU_USAGE:
+            strType = "gpu";
+            break;
+        case ProfilingType::GPU_MEMORY:
+            strType = "gpu_mem";
+            break;
+        default:
+            strType = "undefined";
+            break;
         }
         m_file << strType.c_str() << csvSeparator << getTimestamp();
-        for (auto it = data.cbegin(); it != data.cend(); ++it)
-        {
+        for (auto it = data.cbegin(); it != data.cend(); ++it) {
             m_file << csvSeparator << *it;
         }
         m_file << "\n";
@@ -191,11 +261,12 @@ void UProfileImpl::write(ProfilingType type, const std::list<std::string>& data)
     }
 }
 
-unsigned long long UProfileImpl::getTimestamp() const {
-	return (m_tsUnit == TimestampUnit::EPOCH_TIME ? getEpochTime() : getTimeSinceBoot());
+unsigned long long UProfileImpl::getTimestamp() const
+{
+    return (m_tsUnit == TimestampUnit::EPOCH_TIME ? getEpochTime() : getTimeSinceBoot());
 }
 
-unsigned long long UProfileImpl::getEpochTime() 
+unsigned long long UProfileImpl::getEpochTime()
 {
     return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 }
@@ -204,9 +275,8 @@ unsigned long long UProfileImpl::getTimeSinceBoot()
 {
 #if defined(__linux__)
     double uptime_seconds;
-    if (std::ifstream("/proc/uptime", std::ios::in) >> uptime_seconds)
-    {
-      return static_cast<unsigned long long>(uptime_seconds*1000.0);
+    if (std::ifstream("/proc/uptime", std::ios::in) >> uptime_seconds) {
+        return static_cast<unsigned long long>(uptime_seconds * 1000.0);
     }
     return 0;
 #elif defined(_WIN32)
@@ -216,8 +286,7 @@ unsigned long long UProfileImpl::getTimeSinceBoot()
 #endif
 }
 
-
-void UProfileImpl::getSystemMemory(int &totalMem, int &availableMem, int &freeMem)
+void UProfileImpl::getSystemMemory(int& totalMem, int& availableMem, int& freeMem)
 {
 
 #if defined(__linux__)
@@ -232,13 +301,11 @@ void UProfileImpl::getSystemMemory(int &totalMem, int &availableMem, int &freeMe
             stringstream ls(line);
             ls.ignore(256, ' ');
             ls >> totalMem;
-        }
-        else if (line.find("MemFree") != std::string::npos) {
+        } else if (line.find("MemFree") != std::string::npos) {
             stringstream ls(line);
             ls.ignore(256, ' ');
             ls >> freeMem;
-        }
-        else if (line.find("MemAvailable") != std::string::npos) {
+        } else if (line.find("MemAvailable") != std::string::npos) {
             {
                 stringstream ls(line);
                 ls.ignore(256, ' ');
@@ -250,7 +317,7 @@ void UProfileImpl::getSystemMemory(int &totalMem, int &availableMem, int &freeMe
 #endif
 }
 
-void UProfileImpl::getProcessMemory(int &rss, int &shared)
+void UProfileImpl::getProcessMemory(int& rss, int& shared)
 {
 
 #if defined(__linux__)
@@ -266,4 +333,3 @@ void UProfileImpl::getProcessMemory(int &rss, int &shared)
 }
 
 }
-

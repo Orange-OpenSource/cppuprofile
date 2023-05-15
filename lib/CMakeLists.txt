@@ -34,6 +34,7 @@ ENDIF()
 SET(UProfile_PUBLIC_HEADERS
     uprofile.h
     timestampunit.h
+    igpumonitor.h
 )
 
 SET(UProfile_HEADERS

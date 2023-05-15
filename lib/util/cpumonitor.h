@@ -10,15 +10,16 @@
 #ifndef CPUMONITOR_H_
 #define CPUMONITOR_H_
 
-#include <vector>
 #include <string>
+#include <vector>
 
 using namespace std;
 
 namespace uprofile
 {
 
-class CpuMonitor {
+class CpuMonitor
+{
 public:
     explicit CpuMonitor();
     virtual ~CpuMonitor();

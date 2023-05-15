@@ -10,12 +10,13 @@
 #ifndef UPROFILE_H_
 #define UPROFILE_H_
 
-#include <list>
-#include <string>
 #include <fstream>
+#include <list>
 #include <map>
+#include <string>
 #include <vector>
 
+#include "igpumonitor.h"
 #include "timestampunit.h"
 
 // UPROFAPI is used to export public API functions from the DLL / shared library.
@@ -41,79 +42,107 @@
 
 namespace uprofile
 {
-    /**
-     * @brief start
-     * Start profiling to record steps.
-     * Profiling report will be written in filepath given
-     */
-	UPROFAPI void start(const char* file);
+/**
+ * @brief start
+ * Start profiling to record steps.
+ * Profiling report will be written in filepath given
+ */
+UPROFAPI void start(const char* file);
 
-    /**
-     * @brief stop
-     * Stop profiling and flush recorded steps to TRACE file
-     *
-     * Stopping profiler on no started profiler has no effect
-     *
-     */
-	UPROFAPI void stop();
+/**
+ * @brief stop
+ * Stop profiling and flush recorded steps to TRACE file
+ *
+ * Stopping profiler on no started profiler has no effect
+ *
+ */
+UPROFAPI void stop();
 
-    /**
-     * @brief setTimestampUnit
-     * Change the timestamp unit to record profiling metrics
-     *
-     * It should be called before calling start() method.
-     * 
-     * Note: default value is EPOCH_TIME
-     */
-	UPROFAPI void setTimestampUnit(TimestampUnit tsUnit);
+/**
+ * @brief addGPUMonitor
+ * @param monitor: custom GPUMonitor object
+ * Inject a GPUMonitor object that will be responsible for doing
+ * the GPU monitoring (usage and memory)
+ *
+ * Note: uprofile takes ownership of passed object.
+ */
+UPROFAPI void addGPUMonitor(IGPUMonitor* monitor);
 
-    /**
-     * @brief timeBegin
-     * @param title
-     *
-     * Record a new step with its timestamp since profiler start.
-     */
-	UPROFAPI void timeBegin(const std::string& title);
+/**
+ * @brief removeGPUMonitor
+ * Destroy injected GPUMonitor object
+ */
+UPROFAPI void removeGPUMonitor();
 
-    /**
-     * @brief timeEnd
-     * Compute duration between time start and time end of same step
-     * If no timeStart has been called before, time start is profiler init time
-     */
-	UPROFAPI void timeEnd(const std::string& title);
+/**
+ * @brief setTimestampUnit
+ * Change the timestamp unit to record profiling metrics
+ *
+ * It should be called before calling start() method.
+ *
+ * Note: default value is EPOCH_TIME
+ */
+UPROFAPI void setTimestampUnit(TimestampUnit tsUnit);
 
-    /**
-     * @brief startProcessMemoryMonitoring
-     * @param period: period between two memory dump (in ms)
-     */
-	UPROFAPI void startProcessMemoryMonitoring(int period);
+/**
+ * @brief timeBegin
+ * @param title
+ *
+ * Record a new step with its timestamp since profiler start.
+ */
+UPROFAPI void timeBegin(const std::string& title);
 
-    /**
-     * @brief startSystemMemoryMonitoring
-     * @param period: period between two memory dump (in ms)
-     */
-	UPROFAPI void startSystemMemoryMonitoring(int period);
+/**
+ * @brief timeEnd
+ * Compute duration between time start and time end of same step
+ * If no timeStart has been called before, time start is profiler init time
+ */
+UPROFAPI void timeEnd(const std::string& title);
 
-    /**
-     * @brief startCPUUsageMonitoring
-     * @param period: period between two cpu usage dump (in ms)
-     */
-	UPROFAPI void startCPUUsageMonitoring(int period);
+/**
+ * @brief startProcessMemoryMonitoring
+ * @param period: period between two memory dump (in ms)
+ */
+UPROFAPI void startProcessMemoryMonitoring(int period);
 
-    /**
-     * @brief getProcessMemory: return memory used by the current process
-     */
-	UPROFAPI void getProcessMemory(int& rss, int& shared);
+/**
+ * @brief startSystemMemoryMonitoring
+ * @param period: period between two memory dump (in ms)
+ */
+UPROFAPI void startSystemMemoryMonitoring(int period);
 
-    /**
-     * @brief getSystemMemory: dump global system memory
-     */
-	UPROFAPI void getSystemMemory(int& totalMem, int& availableMem, int& freeMem);
+/**
+ * @brief startCPUUsageMonitoring
+ * @param period: period between two cpu usage dump (in ms)
+ */
+UPROFAPI void startCPUUsageMonitoring(int period);
 
-    /**
-     * @brief getInstantCpuUsage: get usage of all cpu cores
-     */
-	UPROFAPI std::vector<float> getInstantCpuUsage();
+/**
+ * @brief startGPUUsageMonitoring
+ * @param period: period between two gpu usage dump (in ms)
+ */
+UPROFAPI void startGPUUsageMonitoring(int period);
+
+/**
+ * @brief startGPUMemoryMonitoring
+ * @param period: period between two gpu usage dump (in ms)
+ */
+UPROFAPI void startGPUMemoryMonitoring(int period);
+
+/**
+ * @brief getProcessMemory: return memory used by the current process
+ */
+UPROFAPI void getProcessMemory(int& rss, int& shared);
+
+/**
+ * @brief getSystemMemory: dump global system memory
+ */
+UPROFAPI void getSystemMemory(int& totalMem, int& availableMem, int& freeMem);
+
+/**
+ * @brief getInstantCpuUsage: get usage of all cpu cores
+ */
+UPROFAPI std::vector<float> getInstantCpuUsage();
 }
 
 #endif /* UPROFILE_H_ */

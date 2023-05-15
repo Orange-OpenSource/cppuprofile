@@ -10,10 +10,10 @@
 #ifndef TIMER_H_
 #define TIMER_H_
 
-#include <iostream>
-#include <thread>
 #include <chrono>
 #include <functional>
+#include <iostream>
+#include <thread>
 
 using namespace std;
 

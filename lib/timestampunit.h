@@ -10,11 +10,12 @@
 #ifndef TIMESTAMP_UNIT_H_
 #define TIMESTAMP_UNIT_H_
 
-namespace uprofile {
+namespace uprofile
+{
 
-enum class TimestampUnit{
-	EPOCH_TIME, // Time since epoch
-	UPTIME		// Time since boot
+enum class TimestampUnit {
+    EPOCH_TIME, // Time since epoch
+    UPTIME      // Time since boot
 };
 
 }
