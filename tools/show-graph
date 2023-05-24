@@ -102,7 +102,7 @@ def create_sys_mem_graphs(df):
     names = ["Total", "Available", "Free"]
     for index in range(3):
         yield go.Scatter(x=pd.to_datetime(df['timestamp'], unit='ms'),
-                         y=(pd.to_numeric(df["extra_{}".format(index + 1)], downcast="integer") / 1000),
+                         y=(pd.to_numeric(df["extra_{}".format(index + 1)], downcast="integer") / 1024),
                          name=names[index],
                          showlegend=True)
 
@@ -115,7 +115,7 @@ def create_proc_mem_graphs(df):
     names = ["RSS", "Shared"]
     for index in range(2):
         yield go.Scatter(x=pd.to_datetime(df['timestamp'], unit='ms'),
-                         y=(pd.to_numeric(df["extra_{}".format(index + 1)], downcast="integer") / 1000),
+                         y=(pd.to_numeric(df["extra_{}".format(index + 1)], downcast="integer") / 1024),
                          name=names[index],
                          showlegend=True)
 
@@ -128,7 +128,7 @@ def create_gpu_mem_graphs(df):
     names = ["Used", "Total"]
     for index in range(2):
         yield go.Scatter(x=pd.to_datetime(df['timestamp'], unit='ms'),
-                         y=(pd.to_numeric(df["extra_{}".format(index + 1)], downcast="integer") / 1000),
+                         y=(pd.to_numeric(df["extra_{}".format(index + 1)], downcast="integer") / 1024),
                          name=names[index],
                          showlegend=True)
 
