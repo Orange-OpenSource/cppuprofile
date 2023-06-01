@@ -211,7 +211,11 @@ vector<float> UProfileImpl::getInstantCpuUsage()
 
 void UProfileImpl::stop()
 {
+    m_processMemoryMonitorTimer.stop();
+    m_systemMemoryMonitorTimer.stop();
     m_cpuMonitorTimer.stop();
+    m_gpuUsageMonitorTimer.stop();
+    m_gpuMemoryMonitorTimer.stop();
     m_file.close();
 }
 
