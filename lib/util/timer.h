@@ -14,6 +14,7 @@
 #include <functional>
 #include <iostream>
 #include <thread>
+#include <mutex>
 
 using namespace std;
 
@@ -27,11 +28,13 @@ public:
     void setInterval(int interval);
     void start();
     void stop();
+    bool isRunning();
 
 private:
     thread* m_th;
     bool m_running;
     int m_interval;
+    std::mutex m_mutex;
     std::function<void(void)> m_timeout;
 };
 
