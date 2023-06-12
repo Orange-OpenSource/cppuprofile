@@ -17,9 +17,7 @@ Timer::Timer(int interval) :
 
 Timer::~Timer()
 {
-    if (m_th) {
-        stop();
-    }
+    stop();
 }
 
 void Timer::setInterval(int interval)
@@ -32,12 +30,17 @@ void Timer::setTimeout(const std::function<void(void)>& timeout)
     m_timeout = timeout;
 }
 
+bool Timer::isRunning() {
+	std::lock_guard<std::mutex> lock(m_mutex);
+    return m_running;
+}
+
 void Timer::start()
 {
     if (m_interval > 0 && m_th == NULL) {
         m_running = true;
         m_th = new thread([=]() {
-            while (m_running == true) {
+            while (isRunning()) {
                 this_thread::sleep_for(chrono::milliseconds(m_interval));
                 if (m_timeout) {
                     m_timeout();
@@ -49,8 +52,12 @@ void Timer::start()
 
 void Timer::stop()
 {
+    m_mutex.lock();
     m_running = false;
-    m_th->join();
-    delete m_th;
-    m_th = NULL;
+    m_mutex.unlock();
+    if (m_th) {
+        m_th->join();
+        delete m_th;
+        m_th = NULL;
+    }
 }

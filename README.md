@@ -72,6 +72,12 @@ uprofile::start("uprofile.log");
 uprofile::startGPUMemoryMonitoring(200);
 ```
 
+#### Supported GPU monitoring
+
+Here is the list of GPUs supported by `cppuprofile`
+
+* NVidia Graphics Cards (through `nvidia-smi`). Pass `-DGPU_MONITOR_NVIDIA` as compile option and inject `uprofile::NvidiaMonitor` from `<cppuprofile/monitors/nvidiamonitor` as `GPUMonitor`. The `nvidia-smi` tool should be installed into `/usr/bin` directory.
+
 ## Tools
 
 The project also brings a tool for displaying the different metrics in

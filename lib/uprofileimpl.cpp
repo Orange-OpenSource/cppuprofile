@@ -141,6 +141,8 @@ void UProfileImpl::startGPUUsageMonitoring(int period)
         return;
     }
 
+    m_gpuMonitor->start(period);
+
     m_gpuUsageMonitorTimer.setInterval(period);
     m_gpuUsageMonitorTimer.setTimeout([=]() {
         dumpGpuUsage();
@@ -154,6 +156,7 @@ void UProfileImpl::startGPUMemoryMonitoring(int period)
         std::cerr << "Cannot monitor GPU memory: no GPUMonitor set!" << std::endl;
         return;
     }
+    m_gpuMonitor->start(period);
 
     m_gpuMemoryMonitorTimer.setInterval(period);
     m_gpuMemoryMonitorTimer.setTimeout([=]() {
@@ -211,7 +214,12 @@ vector<float> UProfileImpl::getInstantCpuUsage()
 
 void UProfileImpl::stop()
 {
+    m_processMemoryMonitorTimer.stop();
+    m_systemMemoryMonitorTimer.stop();
     m_cpuMonitorTimer.stop();
+    m_gpuUsageMonitorTimer.stop();
+    m_gpuMemoryMonitorTimer.stop();
+    m_gpuMonitor->stop();
     m_file.close();
 }
 
