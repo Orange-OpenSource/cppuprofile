@@ -10,7 +10,8 @@
 #ifndef IGPUMONITOR_H_
 #define IGPUMONITOR_H_
 
-namespace uprofile {
+namespace uprofile
+{
 
 /**
  * Interface to implement for monitoring GPU usage and memory
@@ -20,14 +21,20 @@ namespace uprofile {
  * be defined to retrieve metrics from GPU vendor (Nvidia, AMD, Broadcom
  * for RPI...)
  */
-class IGPUMonitor {
+class IGPUMonitor
+{
 public:
-	virtual ~IGPUMonitor() {}
+    virtual ~IGPUMonitor() {}
 
-	// Usage should be in percentage
-	virtual float getUsage() = 0;
-	// usedMem and totalMem should be returned as KiB
-	virtual void getMemory(int& usedMem, int& totalMem) = 0;
+    // Start monitoring
+    virtual void start(int period) = 0;
+    // Stop monitoring
+    virtual void stop() = 0;
+
+    // Usage should be in percentage
+    virtual float getUsage() = 0;
+    // usedMem and totalMem should be returned as KiB
+    virtual void getMemory(int& usedMem, int& totalMem) = 0;
 };
 
 }
