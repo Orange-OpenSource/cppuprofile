@@ -1,5 +1,12 @@
 # cppuprofile
 
+![GitHub tag](https://img.shields.io/github/tag/Orange-OpenSource/cppuprofile)
+![Licensing](https://img.shields.io/github/license/Orange-OpenSource/cppuprofile)
+
+![Linux](https://img.shields.io/badge/Linux-full_support-green?logo=linux&logoColor=white)
+![Windows](https://img.shields.io/badge/Windows-partial_support-orange?&logo=windows&logoColor=white)
+![MacOS](https://img.shields.io/badge/MacOS-not_tested-orange?&logo=apple&logoColor=white)
+
 This project provides a tiny C++ profiling library for monitoring:
 * execution time
 * CPU usage
@@ -16,36 +23,29 @@ compatible with Linux and Windows.
 
 Metrics are stored in a CSV file (the path is configurable).
 
+## Usage
+
 The library is lightweight, simple and easy to use. It can be easily used from an existing
 application or integrated in a dedicated monitoring application.
 
+### System memory and CPU usage onitoring
 
-## Build
-
-The build process is based on CMake. Minimum version is 2.8.
-
-```commandline
-$ cmake --configure . -B ../build-cppuprofile
-$ cmake --build ../build-cppuprofile
+```cpp
+#include <uprofile/uprofile.h>
+...
+uprofile::start("uprofile.log");
+uprofile::startSystemMemoryMonitoring(200);
+uprofile::startCPUUsageMonitoring(int period);
+...
+uprofile::stop();
 ```
 
-### Shared/dynamic library
+### Record time execution
 
-By default, it generates a shared library on Linux and a dynamic library (DLL) on Windows. To link with this library on Windows, you must
-pass `-DUPROFILE_DLL` definition to CMake.
-
-### Static library
-
-If you want to generate a static library, you must use `-DBUILD_SHARED_LIBS=OFF` CMake option.
-
-### Disable profiling in Release mode
-
-If you want to disable profiling in Release mode or if you want to only enable profiling in particular cases, you can use the `PROFILE_ENABLED` option (set to `ON` by default).
-
-To disable the profiling:
-
-```commandline
-$ cmake --configure . -B ../build-cppuprofile -DPROFILE_ENABLED=OFF
+```cpp
+uprofile::timeBegin("my_custom_function");
+...
+uprofile::timeEnd("my_custom_function");
 ```
 
 ### GPU monitoring
@@ -78,6 +78,34 @@ Here is the list of GPUs supported by `cppuprofile`
 
 * NVidia Graphics Cards (through `nvidia-smi`). Pass `-DGPU_MONITOR_NVIDIA` as compile option and inject `uprofile::NvidiaMonitor` from `<cppuprofile/monitors/nvidiamonitor` as `GPUMonitor`. The `nvidia-smi` tool should be installed into `/usr/bin` directory.
 
+## Build
+
+The build process is based on CMake. Minimum version is 2.8.
+
+```commandline
+$ cmake --configure . -B ../build-cppuprofile
+$ cmake --build ../build-cppuprofile
+```
+
+### Shared/dynamic library
+
+By default, it generates a shared library on Linux and a dynamic library (DLL) on Windows. To link with this library on Windows, you must
+pass `-DUPROFILE_DLL` definition to CMake.
+
+### Static library
+
+If you want to generate a static library, you must use `-DBUILD_SHARED_LIBS=OFF` CMake option.
+
+### Disable profiling in Release mode
+
+If you want to disable profiling in Release mode or if you want to only enable profiling in particular cases, you can use the `PROFILE_ENABLED` option (set to `ON` by default).
+
+To disable the profiling:
+
+```commandline
+$ cmake --configure . -B ../build-cppuprofile -DPROFILE_ENABLED=OFF
+```
+
 ## Tools
 
 The project also brings a tool for displaying the different metrics in
@@ -85,13 +113,10 @@ a single view:
 
 ![ScreenshotShowGraph](doc/show-graph-screenshot.png)
 
-This tool is written in Python3. It requires the following packages:
-* numpy
-* plotly
-* pandas
+This tool is written in Python3. It requires a set of dependency packages. To install them:
 
-```
-$ pip3 install numpy plotly pandas
+```commandline
+$ pip3 install -r requirements.txt
 ```
 
 Then
@@ -112,6 +137,13 @@ $ cmake --configure . -B ../build-cppuprofile -DSAMPLE_ENABLED=ON
 $ cmake --build ../build-cppuprofile
 $ ../build-cppuprofile/sample/uprof-sample
 ```
+
+## Windows support limitations
+
+The library compiles on Windows but only time execution is supported so far. Monitoring metrics like CPU Usage and system, process and nvidia GPU memory are not supported. 
+
+Contributions are welcomed.
+
 
 ## License
 
