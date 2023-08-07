@@ -1,5 +1,12 @@
 # cppuprofile
 
+![GitHub tag](https://img.shields.io/github/tag/Orange-OpenSource/cppuprofile)
+![Licensing](https://img.shields.io/github/license/Orange-OpenSource/cppuprofile)
+
+![Linux](https://img.shields.io/badge/Linux-full_support-green?logo=linux&logoColor=white)
+![Windows](https://img.shields.io/badge/Windows-partial_support-orange?&logo=windows&logoColor=white)
+![MacOS](https://img.shields.io/badge/MacOS-not_tested-orange?&logo=apple&logoColor=white)
+
 This project provides a tiny C++ profiling library for monitoring:
 * execution time
 * CPU usage
