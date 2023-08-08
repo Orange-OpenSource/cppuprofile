@@ -30,8 +30,9 @@ void Timer::setTimeout(const std::function<void(void)>& timeout)
     m_timeout = timeout;
 }
 
-bool Timer::isRunning() {
-	std::lock_guard<std::mutex> lock(m_mutex);
+bool Timer::isRunning()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
     return m_running;
 }
 
