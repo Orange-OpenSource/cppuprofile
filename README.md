@@ -1,6 +1,6 @@
 # cppuprofile
 
-![GitHub tag](https://img.shields.io/github/tag/Orange-OpenSource/cppuprofile)
+![GitHub tag](https://img.shields.io/github/v/tag/orange-opensource/cppuprofile)
 ![Licensing](https://img.shields.io/github/license/Orange-OpenSource/cppuprofile)
 [![Documentation](https://img.shields.io/badge/documentation-ok-green)](https://orange-opensource.github.io/cppuprofile/)
 
