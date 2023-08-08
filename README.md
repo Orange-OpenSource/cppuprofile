@@ -2,6 +2,7 @@
 
 ![GitHub tag](https://img.shields.io/github/tag/Orange-OpenSource/cppuprofile)
 ![Licensing](https://img.shields.io/github/license/Orange-OpenSource/cppuprofile)
+[![Documentation](https://img.shields.io/badge/documentation-ok-green)](https://orange-opensource.github.io/cppuprofile/)
 
 ![Linux](https://img.shields.io/badge/Linux-full_support-green?logo=linux&logoColor=white)
 ![Windows](https://img.shields.io/badge/Windows-partial_support-orange?&logo=windows&logoColor=white)
@@ -25,10 +26,11 @@ Metrics are stored in a CSV file (the path is configurable).
 
 ## Usage
 
-The library is lightweight, simple and easy to use. It can be easily used from an existing
-application or integrated in a dedicated monitoring application.
+The library is lightweight, simple and easy to use. It can be easily used from an existing application or integrated in a dedicated monitoring application.
 
-### System memory and CPU usage onitoring
+Full API documentation is available [here](https://orange-opensource.github.io/cppuprofile/).
+
+### System memory and CPU usage monitoring
 
 ```cpp
 #include <uprofile/uprofile.h>
