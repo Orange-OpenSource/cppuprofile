@@ -37,7 +37,7 @@ Full API documentation is available [here](https://orange-opensource.github.io/c
 ...
 uprofile::start("uprofile.log");
 uprofile::startSystemMemoryMonitoring(200);
-uprofile::startCPUUsageMonitoring(int period);
+uprofile::startCPUUsageMonitoring(200);
 ...
 uprofile::stop();
 ```
