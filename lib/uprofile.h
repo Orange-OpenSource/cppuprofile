@@ -40,43 +40,45 @@
 #define UPROFAPI
 #endif
 
+/**
+ * @defgroup uprofile Functions for monitoring system metrics
+ *  @{
+ */
 namespace uprofile
 {
 /**
- * @brief start
- * Start profiling to record steps.
- * Profiling report will be written in filepath given
+ * @ingroup uprofile
+ * @brief Start profiling to periodically record monitored events to a file
+ * @param file: file path where events will be saved
  */
 UPROFAPI void start(const char* file);
 
 /**
- * @brief stop
- * Stop profiling and flush recorded steps to TRACE file
+ * @ingroup uprofile
+ * @brief Stop all monitorings
  *
- * Stopping profiler on no started profiler has no effect
- *
+ * Note: stopping profiler without prior call to start() has no effect
  */
 UPROFAPI void stop();
 
 /**
- * @brief addGPUMonitor
+ * @ingroup uprofile
+ * @brief Inject a GPUMonitor object that will be responsible for monitoring GPU metrics (usage and memory)
  * @param monitor: custom GPUMonitor object
- * Inject a GPUMonitor object that will be responsible for doing
- * the GPU monitoring (usage and memory)
  *
- * Note: uprofile takes ownership of passed object.
+ * Note: uprofile takes ownership of the passed object.
  */
 UPROFAPI void addGPUMonitor(IGPUMonitor* monitor);
 
 /**
- * @brief removeGPUMonitor
- * Destroy injected GPUMonitor object
+ * @ingroup uprofile
+ * @brief Destroy injected GPUMonitor object
  */
 UPROFAPI void removeGPUMonitor();
 
 /**
- * @brief setTimestampUnit
- * Change the timestamp unit to record profiling metrics
+ * @ingroup uprofile
+ * @brief Change the timestamp unit to record profiling metrics
  *
  * It should be called before calling start() method.
  *
@@ -85,64 +87,76 @@ UPROFAPI void removeGPUMonitor();
 UPROFAPI void setTimestampUnit(TimestampUnit tsUnit);
 
 /**
- * @brief timeBegin
- * @param title
- *
- * Record a new step with its timestamp since profiler start.
+ * @ingroup uprofile
+ * @brief Start monitoring the execution time of the given event
+ * @param title: event key
  */
 UPROFAPI void timeBegin(const std::string& title);
 
 /**
- * @brief timeEnd
- * Compute duration between time start and time end of same step
- * If no timeStart has been called before, time start is profiler init time
+ * @ingroup uprofile
+ * @brief Stop monitoring the execution time of the given event
+ * 
+ * The library computes the duration for the given event and saves it into the report file.
+ * 
+ * If no timeBegin() has been called with the given title, the call is ignored.
  */
 UPROFAPI void timeEnd(const std::string& title);
 
 /**
- * @brief startProcessMemoryMonitoring
+ * @ingroup uprofile
+ * @brief Start monitoring of the memory used by the process
  * @param period: period between two memory dump (in ms)
  */
 UPROFAPI void startProcessMemoryMonitoring(int period);
 
 /**
- * @brief startSystemMemoryMonitoring
+ * @ingroup uprofile
+ * @brief Start monitoring of the global memory used on the system
  * @param period: period between two memory dump (in ms)
  */
 UPROFAPI void startSystemMemoryMonitoring(int period);
 
 /**
- * @brief startCPUUsageMonitoring
+ * @ingroup uprofile
+ * @brief Start monitoring of the usage percentage of each CPU
  * @param period: period between two cpu usage dump (in ms)
  */
 UPROFAPI void startCPUUsageMonitoring(int period);
 
 /**
- * @brief startGPUUsageMonitoring
+ * @ingroup uprofile
+ * @brief Start monitoring of the usage of the GPU
  * @param period: period between two gpu usage dump (in ms)
  */
 UPROFAPI void startGPUUsageMonitoring(int period);
 
 /**
- * @brief startGPUMemoryMonitoring
+ * @ingroup uprofile
+ * @brief Start monitoring of the usage of the GPU memory
  * @param period: period between two gpu usage dump (in ms)
  */
 UPROFAPI void startGPUMemoryMonitoring(int period);
 
 /**
- * @brief getProcessMemory: return memory used by the current process
+ * @ingroup uprofile
+ * @brief memory used by the current process
  */
 UPROFAPI void getProcessMemory(int& rss, int& shared);
 
 /**
- * @brief getSystemMemory: dump global system memory
+ * @ingroup uprofile
+ * @brief dump global system memory
  */
 UPROFAPI void getSystemMemory(int& totalMem, int& availableMem, int& freeMem);
 
 /**
- * @brief getInstantCpuUsage: get usage of all cpu cores
+ * @ingroup uprofile
+ * @brief get usage of all cpu cores
+ * @return vector holding the usage percentage of each CPU core
  */
 UPROFAPI std::vector<float> getInstantCpuUsage();
 }
+/** @} */ // end of uprofile group
 
 #endif /* UPROFILE_H_ */

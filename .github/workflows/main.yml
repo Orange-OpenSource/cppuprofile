@@ -1,0 +1,26 @@
+name: API documentation generation
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  pages: write
+  id-token: write
+
+jobs:
+  doc:
+    runs-on: ubuntu-latest
+    container: hrektts/doxygen
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+           doxygen doc/doxygen.cfg
+           mv html _site
+           mv _site/group__uprofile.html _site/index.html
+        name: Generate doc
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v2
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v2
