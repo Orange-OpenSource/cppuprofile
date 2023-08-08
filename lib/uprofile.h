@@ -96,9 +96,9 @@ UPROFAPI void timeBegin(const std::string& title);
 /**
  * @ingroup uprofile
  * @brief Stop monitoring the execution time of the given event
- * 
+ *
  * The library computes the duration for the given event and saves it into the report file.
- * 
+ *
  * If no timeBegin() has been called with the given title, the call is ignored.
  */
 UPROFAPI void timeEnd(const std::string& title);

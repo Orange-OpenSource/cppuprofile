@@ -15,11 +15,11 @@ This project provides a tiny C++ profiling library for monitoring:
 * GPU usage and memory
 
 This library aims at collecting metrics on embedded devices to monitor device
-performance while operating heavy tasks or booting for example. Those metrics can 
-be useful to check that load is properly spread onto all CPU cores or 
+performance while operating heavy tasks or booting for example. Those metrics can
+be useful to check that load is properly spread onto all CPU cores or
 that memory is not starved.
 
-This library can also run on non-embedded devices like servers or desktop PCs. It is 
+This library can also run on non-embedded devices like servers or desktop PCs. It is
 compatible with Linux and Windows.
 
 Metrics are stored in a CSV file (the path is configurable).
@@ -142,7 +142,7 @@ $ ../build-cppuprofile/sample/uprof-sample
 
 ## Windows support limitations
 
-The library compiles on Windows but only time execution is supported so far. Monitoring metrics like CPU Usage and system, process and nvidia GPU memory are not supported. 
+The library compiles on Windows but only time execution is supported so far. Monitoring metrics like CPU Usage and system, process and nvidia GPU memory are not supported.
 
 Contributions are welcomed.
 

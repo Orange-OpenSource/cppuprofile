@@ -7,18 +7,19 @@
 //
 // Author: Cédric CHEDALEUX <cedric.chedaleux@orange.com> et al
 
-#include <thread>
 #include <chrono>
-#include <uprofile.h>
 #include <stdlib.h>
+#include <thread>
+#include <uprofile.h>
 
-void printSystemMemory() {
+void printSystemMemory()
+{
     int total = 0, free = 0, available = 0;
     uprofile::getSystemMemory(total, free, available);
     printf("Memory: total = %i MB, free = %i MB, available = %i MB\n", total / 1000, free / 1000, available / 1000);
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     uprofile::start("./test.log");
 
@@ -40,10 +41,10 @@ int main(int argc, char *argv[])
     uprofile::timeBegin("UseMemory");
 
     int lengthBuff = 100000000;
-    char * buf;
+    char* buf;
     printf("Allocating %f MB\n", lengthBuff / sizeof(char) / 1000000.0f);
-    buf = (char*) malloc (lengthBuff+1);
-    for (int i=0; i < lengthBuff; i++) {
+    buf = (char*)malloc(lengthBuff + 1);
+    for (int i = 0; i < lengthBuff; i++) {
         buf[i] = rand() % 26 + 'a';
     }
     buf[lengthBuff] = '\0';
@@ -64,7 +65,7 @@ int main(int argc, char *argv[])
 
     // --- WAIT 5 SECONDS ---
     uprofile::timeBegin("Sleep2");
-	std::this_thread::sleep_for(std::chrono::seconds(5));
+    std::this_thread::sleep_for(std::chrono::seconds(5));
     uprofile::timeEnd("Sleep2");
 
     uprofile::stop();
