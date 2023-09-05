@@ -11,6 +11,7 @@
 #define NVIDIAMONITOR_H_
 
 #include "igpumonitor.h"
+#include "api.h"
 #include <mutex>
 #include <string>
 #include <thread>
@@ -23,13 +24,13 @@ namespace uprofile
 class NvidiaMonitor : public IGPUMonitor
 {
 public:
-    explicit NvidiaMonitor();
-    virtual ~NvidiaMonitor();
+    UPROFAPI explicit NvidiaMonitor();
+    UPROFAPI virtual ~NvidiaMonitor();
 
-    void start(int period) override;
-    void stop() override;
-    float getUsage() override;
-    void getMemory(int& usedMem, int& totalMem) override;
+    UPROFAPI void start(int period) override;
+    UPROFAPI void stop() override;
+    UPROFAPI float getUsage() override;
+    UPROFAPI void getMemory(int& usedMem, int& totalMem) override;
 
 private:
     void watchGPU(int period);
