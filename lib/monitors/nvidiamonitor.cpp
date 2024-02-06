@@ -38,7 +38,12 @@ int read_nvidia_smi_stdout(int fd, string& gpuUsage, string& usedMem, string& to
     }
 
     // Remove colon to have only spaces and use istringstream
-    line.erase(remove(line.begin(), line.end(), ','), line.end());
+    auto noSpaceEnd = remove(line.begin(), line.end(), ',');
+    if (noSpaceEnd == line.end()) { // output trace does not have comma so something went wrong with the command
+        return ENODATA;
+    }
+
+    line.erase(noSpaceEnd, line.end());
     std::istringstream ss(line);
     ss >> gpuUsage >> usedMem >> totalMem;
 
