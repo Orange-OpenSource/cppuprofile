@@ -227,7 +227,6 @@ void UProfileImpl::stop()
         m_gpuMonitor->stop();
     }
     m_file.close();
-
 }
 
 void UProfileImpl::setTimestampUnit(TimestampUnit tsUnit)
