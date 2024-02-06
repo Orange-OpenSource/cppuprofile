@@ -69,16 +69,17 @@ public:
 And then inject it at runtime to the `uprofile` monitoring system:
 
 ```cpp
-uprofile::addGPUMonitor(new IGPUMonitor);
+uprofile::addGPUMonitor(new MyGPUMonitor);
 uprofile::start("uprofile.log");
 uprofile::startGPUMemoryMonitoring(200);
+uprofile::startGPUUsageMonitoring(200);
 ```
 
 #### Supported GPU monitoring
 
 Here is the list of GPUs supported by `cppuprofile`
 
-* NVidia Graphics Cards (through `nvidia-smi`). Pass `-DGPU_MONITOR_NVIDIA` as compile option and inject `uprofile::NvidiaMonitor` from `<cppuprofile/monitors/nvidiamonitor` as `GPUMonitor`. The `nvidia-smi` tool should be installed into `/usr/bin` directory.
+* NVidia Graphics Cards (through `nvidia-smi`). Pass `-DGPU_MONITOR_NVIDIA=ON` as compile option and inject `uprofile::NvidiaMonitor` from `monitors/nvidiamonitor.h` as `GPUMonitor`. The `nvidia-smi` tool should be installed into `/usr/bin` directory.
 
 ## Build
 

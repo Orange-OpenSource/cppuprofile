@@ -38,7 +38,12 @@ int read_nvidia_smi_stdout(int fd, string& gpuUsage, string& usedMem, string& to
     }
 
     // Remove colon to have only spaces and use istringstream
-    line.erase(remove(line.begin(), line.end(), ','), line.end());
+    auto noSpaceEnd = remove(line.begin(), line.end(), ',');
+    if (noSpaceEnd == line.end()) { // output trace does not have comma so something went wrong with the command
+        return ENODATA;
+    }
+
+    line.erase(noSpaceEnd, line.end());
     std::istringstream ss(line);
     ss >> gpuUsage >> usedMem >> totalMem;
 
@@ -65,13 +70,13 @@ void uprofile::NvidiaMonitor::stop()
     abortWatchGPU();
 }
 
-float uprofile::NvidiaMonitor::getUsage()
+float uprofile::NvidiaMonitor::getUsage() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_gpuUsage;
 }
 
-void uprofile::NvidiaMonitor::getMemory(int& usedMem, int& totalMem)
+void uprofile::NvidiaMonitor::getMemory(int& usedMem, int& totalMem) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     usedMem = m_usedMem;
@@ -122,12 +127,15 @@ void uprofile::NvidiaMonitor::watchGPU(int period)
         // Start a thread to retrieve the child process stdout
         m_watching = true;
         m_watcherThread = unique_ptr<std::thread>(new thread([stdout_fd, pid, this]() {
-            while (shouldWatch()) {
+            while (watching()) {
                 string gpuUsage, usedMem, totalMem;
                 // if the child process crashes, an error is raised here and threads ends up
                 int err = read_nvidia_smi_stdout(stdout_fd, gpuUsage, usedMem, totalMem);
                 if (err != 0) {
                     cerr << errorMsg << ": read_error = " << strerror(err) << endl;
+                    m_mutex.lock();
+                    m_watching = false;
+                    m_mutex.unlock();
                     break;
                 }
                 m_mutex.lock();
@@ -156,7 +164,7 @@ void uprofile::NvidiaMonitor::abortWatchGPU()
 #endif
 }
 
-bool uprofile::NvidiaMonitor::shouldWatch()
+bool uprofile::NvidiaMonitor::watching() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_watching;

@@ -189,7 +189,7 @@ void UProfileImpl::dumpCpuUsage()
 
 void UProfileImpl::dumpGpuUsage()
 {
-    if (!m_gpuMonitor) {
+    if (!m_gpuMonitor || !m_gpuMonitor->watching()) {
         return;
     }
 
@@ -199,6 +199,10 @@ void UProfileImpl::dumpGpuUsage()
 
 void UProfileImpl::dumpGpuMemory()
 {
+    if (!m_gpuMonitor || !m_gpuMonitor->watching()) {
+        return;
+    }
+
     int usedMem, totalMem;
     m_gpuMonitor->getMemory(usedMem, totalMem);
     write(ProfilingType::GPU_MEMORY, {std::to_string(usedMem), std::to_string(totalMem)});
@@ -219,8 +223,11 @@ void UProfileImpl::stop()
     m_cpuMonitorTimer.stop();
     m_gpuUsageMonitorTimer.stop();
     m_gpuMemoryMonitorTimer.stop();
-    m_gpuMonitor->stop();
+    if (m_gpuMonitor) {
+        m_gpuMonitor->stop();
+    }
     m_file.close();
+
 }
 
 void UProfileImpl::setTimestampUnit(TimestampUnit tsUnit)
