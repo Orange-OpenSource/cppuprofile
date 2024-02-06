@@ -189,7 +189,7 @@ void UProfileImpl::dumpCpuUsage()
 
 void UProfileImpl::dumpGpuUsage()
 {
-    if (!m_gpuMonitor) {
+    if (!m_gpuMonitor || !m_gpuMonitor->watching()) {
         return;
     }
 
@@ -199,7 +199,7 @@ void UProfileImpl::dumpGpuUsage()
 
 void UProfileImpl::dumpGpuMemory()
 {
-    if (!m_gpuMonitor) {
+    if (!m_gpuMonitor || !m_gpuMonitor->watching()) {
         return;
     }
 

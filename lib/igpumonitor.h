@@ -30,6 +30,8 @@ public:
     virtual void start(int period) = 0;
     // Stop monitoring
     virtual void stop() = 0;
+    // Return if monitor is currently watching data
+    virtual bool watching() const = 0;
 
     // Usage should be in percentage
     virtual float getUsage() = 0;

@@ -127,12 +127,15 @@ void uprofile::NvidiaMonitor::watchGPU(int period)
         // Start a thread to retrieve the child process stdout
         m_watching = true;
         m_watcherThread = unique_ptr<std::thread>(new thread([stdout_fd, pid, this]() {
-            while (shouldWatch()) {
+            while (watching()) {
                 string gpuUsage, usedMem, totalMem;
                 // if the child process crashes, an error is raised here and threads ends up
                 int err = read_nvidia_smi_stdout(stdout_fd, gpuUsage, usedMem, totalMem);
                 if (err != 0) {
                     cerr << errorMsg << ": read_error = " << strerror(err) << endl;
+                    m_mutex.lock();
+                    m_watching = false;
+                    m_mutex.unlock();
                     break;
                 }
                 m_mutex.lock();
@@ -161,7 +164,7 @@ void uprofile::NvidiaMonitor::abortWatchGPU()
 #endif
 }
 
-bool uprofile::NvidiaMonitor::shouldWatch()
+bool uprofile::NvidiaMonitor::watching() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_watching;

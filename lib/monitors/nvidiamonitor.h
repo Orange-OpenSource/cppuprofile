@@ -29,15 +29,15 @@ public:
 
     UPROFAPI void start(int period) override;
     UPROFAPI void stop() override;
+    UPROFAPI bool watching() const override;
     UPROFAPI float getUsage() override;
     UPROFAPI void getMemory(int& usedMem, int& totalMem) override;
 
 private:
     void watchGPU(int period);
     void abortWatchGPU();
-    bool shouldWatch();
 
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
     std::unique_ptr<std::thread> m_watcherThread;
     bool m_watching = false;
     int m_totalMem = 0;
