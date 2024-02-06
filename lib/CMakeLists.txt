@@ -32,6 +32,7 @@ IF(PROFILE_ENABLED)
 ENDIF()
 
 SET(UProfile_PUBLIC_HEADERS
+    api.h
     uprofile.h
     timestampunit.h
     igpumonitor.h

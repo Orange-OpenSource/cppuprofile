@@ -10,8 +10,8 @@
 #ifndef NVIDIAMONITOR_H_
 #define NVIDIAMONITOR_H_
 
-#include "igpumonitor.h"
 #include "api.h"
+#include "igpumonitor.h"
 #include <mutex>
 #include <string>
 #include <thread>
