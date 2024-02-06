@@ -34,9 +34,9 @@ public:
     virtual bool watching() const = 0;
 
     // Usage should be in percentage
-    virtual float getUsage() = 0;
+    virtual float getUsage() const = 0;
     // usedMem and totalMem should be returned as KiB
-    virtual void getMemory(int& usedMem, int& totalMem) = 0;
+    virtual void getMemory(int& usedMem, int& totalMem) const = 0;
 };
 
 }

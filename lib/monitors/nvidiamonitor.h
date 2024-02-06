@@ -30,8 +30,8 @@ public:
     UPROFAPI void start(int period) override;
     UPROFAPI void stop() override;
     UPROFAPI bool watching() const override;
-    UPROFAPI float getUsage() override;
-    UPROFAPI void getMemory(int& usedMem, int& totalMem) override;
+    UPROFAPI float getUsage() const override;
+    UPROFAPI void getMemory(int& usedMem, int& totalMem) const override;
 
 private:
     void watchGPU(int period);

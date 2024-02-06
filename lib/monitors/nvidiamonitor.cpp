@@ -70,13 +70,13 @@ void uprofile::NvidiaMonitor::stop()
     abortWatchGPU();
 }
 
-float uprofile::NvidiaMonitor::getUsage()
+float uprofile::NvidiaMonitor::getUsage() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_gpuUsage;
 }
 
-void uprofile::NvidiaMonitor::getMemory(int& usedMem, int& totalMem)
+void uprofile::NvidiaMonitor::getMemory(int& usedMem, int& totalMem) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     usedMem = m_usedMem;
