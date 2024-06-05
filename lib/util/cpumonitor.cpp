@@ -14,10 +14,10 @@
 using namespace std;
 
 uprofile::CpuMonitor::CpuMonitor() :
-    m_nbCpus(getNumberOfCPUCores())
+    m_nbCpus(getNumberOfCPUCores()),
+    m_lastIdleTimes(m_nbCpus, 0),
+    m_lastTotalTimes(m_nbCpus, 0)
 {
-    m_lastIdleTimes.resize(m_nbCpus, 0);
-    m_lastTotalTimes.resize(m_nbCpus, 0);
 }
 
 uprofile::CpuMonitor::~CpuMonitor()
@@ -60,7 +60,7 @@ void uprofile::CpuMonitor::extractCpuTimes(const string& cpuInfo, size_t& idleTi
 
 vector<float> uprofile::CpuMonitor::getUsage()
 {
-    vector<float> usages;
+    vector<float> usages(m_nbCpus, 0);
 #if defined(__linux__)
     ifstream procStat("/proc/stat");
     // /proc/stat dumps the following info:
@@ -85,7 +85,7 @@ vector<float> uprofile::CpuMonitor::getUsage()
 
                 // To compute CPU load, we compute the time the CPU has been idle since the last read.
                 float cpuLoad = 100.0 * (1.0 - (float)(idleTime - m_lastIdleTimes[cpuIndex]) / (totalTime - m_lastTotalTimes[cpuIndex]));
-                usages.push_back(cpuLoad);
+                usages[cpuIndex] = cpuLoad;
 
                 // Save the times value for the next read
                 m_lastIdleTimes[cpuIndex] = idleTime;
