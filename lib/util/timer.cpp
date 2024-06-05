@@ -10,7 +10,6 @@
 #include "timer.h"
 
 Timer::Timer(int interval) :
-    m_th(NULL),
     m_interval(interval)
 {
 }
@@ -30,7 +29,7 @@ void Timer::setTimeout(const std::function<void(void)>& timeout)
     m_timeout = timeout;
 }
 
-bool Timer::isRunning()
+bool Timer::isRunning() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_running;
@@ -38,27 +37,26 @@ bool Timer::isRunning()
 
 void Timer::start()
 {
-    if (m_interval > 0 && m_th == NULL) {
+    if (!m_th && m_interval > 0) {
         m_running = true;
-        m_th = new thread([=]() {
+        m_th = unique_ptr<thread>(new thread([=]() {
             while (isRunning()) {
                 this_thread::sleep_for(chrono::milliseconds(m_interval));
                 if (m_timeout) {
                     m_timeout();
                 }
             }
-        });
+        }));
     }
 }
 
 void Timer::stop()
 {
-    m_mutex.lock();
+    unique_lock<mutex> lk(m_mutex);
     m_running = false;
-    m_mutex.unlock();
+    lk.unlock();
     if (m_th) {
         m_th->join();
-        delete m_th;
-        m_th = NULL;
+        m_th.reset();
     }
 }

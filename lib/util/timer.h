@@ -13,6 +13,7 @@
 #include <chrono>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <mutex>
 #include <thread>
 
@@ -28,13 +29,13 @@ public:
     void setInterval(int interval);
     void start();
     void stop();
-    bool isRunning();
+    bool isRunning() const;
 
 private:
-    thread* m_th;
+    unique_ptr<thread> m_th;
     bool m_running;
     int m_interval;
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
     std::function<void(void)> m_timeout;
 };
 

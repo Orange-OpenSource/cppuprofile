@@ -133,16 +133,17 @@ void uprofile::NvidiaMonitor::watchGPU(int period)
                 int err = read_nvidia_smi_stdout(stdout_fd, gpuUsage, usedMem, totalMem);
                 if (err != 0) {
                     cerr << errorMsg << ": read_error = " << strerror(err) << endl;
-                    m_mutex.lock();
+                    unique_lock<mutex> lk(m_mutex);
                     m_watching = false;
-                    m_mutex.unlock();
+                    lk.unlock();
                     break;
                 }
-                m_mutex.lock();
+
+                unique_lock<mutex> lk(m_mutex);
                 m_gpuUsage = !gpuUsage.empty() ? stof(gpuUsage) : 0.f;
                 m_usedMem = !usedMem.empty() ? stoi(usedMem) * 1024 : 0;    // MiB to KiB
                 m_totalMem = !totalMem.empty() ? stoi(totalMem) * 1024 : 0; // MiB to KiB
-                m_mutex.unlock();
+                lk.unlock();
             }
         }));
     }
@@ -155,9 +156,9 @@ void uprofile::NvidiaMonitor::abortWatchGPU()
 {
 #if defined(__linux__)
     if (m_watcherThread) {
-        m_mutex.lock();
+        unique_lock<mutex> lk(m_mutex);
         m_watching = false;
-        m_mutex.unlock();
+        lk.unlock();
         m_watcherThread->join();
         m_watcherThread.reset();
     }
