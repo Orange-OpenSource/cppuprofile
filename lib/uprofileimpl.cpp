@@ -67,17 +67,17 @@ void UProfileImpl::addGPUMonitor(IGPUMonitor* monitor)
         return;
     }
 
-    if (!m_gpuMonitor) {
-        removeGPUMonitor();
-    }
+    removeGPUMonitor();
 
     m_gpuMonitor = monitor;
 }
 
 void UProfileImpl::removeGPUMonitor()
 {
-    delete m_gpuMonitor;
-    m_gpuMonitor = NULL;
+    if (m_gpuMonitor) {
+        delete m_gpuMonitor;
+        m_gpuMonitor = NULL;
+    }
 }
 
 void UProfileImpl::timeBegin(const std::string& title)
