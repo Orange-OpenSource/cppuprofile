@@ -91,14 +91,14 @@ void UProfileImpl::timeEnd(const std::string& title)
     unsigned long long beginTimestamp = 0;
 
     // Find step in the map
-    m_stepsMutex.lock();
+    unique_lock<mutex> lk(m_stepsMutex);
     auto it = m_steps.find(title);
     bool found = it != m_steps.end();
     if (found) {
         beginTimestamp = (*it).second;
         m_steps.erase(it);
     }
-    m_stepsMutex.unlock();
+    lk.unlock();
 
     if (found) {
         write(ProfilingType::TIME_EXEC, {std::to_string(beginTimestamp), title});
@@ -236,7 +236,6 @@ void UProfileImpl::setTimestampUnit(TimestampUnit tsUnit)
 
 void UProfileImpl::write(ProfilingType type, const std::list<std::string>& data)
 {
-    std::lock_guard<std::mutex> guard(m_fileMutex);
     if (m_file.is_open()) {
         const char csvSeparator = ';';
         std::string strType;
@@ -266,6 +265,7 @@ void UProfileImpl::write(ProfilingType type, const std::list<std::string>& data)
             strType = "undefined";
             break;
         }
+        std::lock_guard<std::mutex> guard(m_fileMutex);
         m_file << strType.c_str() << csvSeparator << getTimestamp();
         for (auto it = data.cbegin(); it != data.cend(); ++it) {
             m_file << csvSeparator << *it;
