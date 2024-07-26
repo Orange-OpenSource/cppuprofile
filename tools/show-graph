@@ -48,6 +48,14 @@ def filter_dataframe(df, metric):
     """
     return df[df['metric'] == metric]
 
+def filter_dataframe_by_extra1(df, extra_1):
+    """
+    Filter the datafram by extra_1 (indicating GPU index for GPU profiling data)
+    :param df:
+    :param metric:
+    :return: Dataframe
+    """
+    return df[df['extra_1'] == extra_1]
 
 def gen_time_exec_df(df):
     """
@@ -115,7 +123,7 @@ def create_proc_mem_graphs(df):
     names = ["RSS", "Shared"]
     for index in range(2):
         yield go.Scatter(x=pd.to_datetime(df['timestamp'], unit='ms'),
-                         y=(pd.to_numeric(df["extra_{}".format(index + 1)], downcast="integer") / 1024),
+                         y=(pd.to_numeric(df["extra_{}".format(index + 2)], downcast="integer") / 1024),
                          name=names[index],
                          showlegend=True)
 
@@ -126,10 +134,13 @@ def create_gpu_mem_graphs(df):
         return None
 
     names = ["Used", "Total"]
-    for index in range(2):
-        yield go.Scatter(x=pd.to_datetime(df['timestamp'], unit='ms'),
-                         y=(pd.to_numeric(df["extra_{}".format(index + 1)], downcast="integer") / 1024),
-                         name=names[index],
+    gpus = pd.unique(df['extra_1'])
+    for gpu in gpus:
+        gpu_df = df[df['extra_1'] == gpu]
+        for index in range(2):
+            yield go.Scatter(x=pd.to_datetime(gpu_df['timestamp'], unit='ms'),
+                         y=(pd.to_numeric(df["extra_{}".format(index + 2)], downcast="integer") / 1024),
+                         name="GPU {} {}".format(gpu, names[index]),
                          showlegend=True)
 
 
@@ -138,10 +149,13 @@ def create_gpu_usage_graphs(df):
     if df.empty:
         return None
 
-    yield go.Scatter(x=pd.to_datetime(df['timestamp'], unit='ms'),
-                     y=pd.to_numeric(df['extra_1']),
-                     name="GPU usage",
-                     showlegend=True)
+    gpus = pd.unique(df['extra_1'])
+    for gpu in gpus:
+        gpu_df = df[df['extra_1'] == gpu]
+        yield go.Scatter(x=pd.to_datetime(gpu_df['timestamp'], unit='ms'),
+                         y=pd.to_numeric(gpu_df['extra_2']),
+                         name="GPU {}".format(gpu),
+                         showlegend=True)
 
 
 def build_graphs(input_file, metrics):
@@ -194,7 +208,7 @@ def build_graphs(input_file, metrics):
                 figs.update_yaxes(row=row_index, col=1, rangemode="tozero")
             elif metric == 'gpu_mem':
                 # Display gpu memory
-                for trace in create_gpu_mem_graphs(filter_dataframe(global_df, 'gpu_mem')):
+                for trace in create_gpu_mem_graphs(filter_dataframe(global_df, metric)):
                     figs.add_trace(trace, row=row_index, col=1)
                 figs.update_yaxes(row=row_index, col=1, rangemode="tozero")
             row_index += 1
