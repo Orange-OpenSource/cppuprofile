@@ -15,6 +15,7 @@
 #include <iostream>
 #include <sstream>
 #include <string.h>
+#include <array>
 
 #if defined(__linux__)
 #include <sys/wait.h>
