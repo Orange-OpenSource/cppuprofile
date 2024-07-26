@@ -193,8 +193,10 @@ void UProfileImpl::dumpGpuUsage()
         return;
     }
 
-    float usage = m_gpuMonitor->getUsage();
-    write(ProfilingType::GPU_USAGE, {std::to_string(usage)});
+    auto const& usage = m_gpuMonitor->getUsage();
+    for (size_t i = 0; i < usage.size(); ++i) {
+        write(ProfilingType::GPU_USAGE, {std::to_string(i), std::to_string(usage[i])});
+    }
 }
 
 void UProfileImpl::dumpGpuMemory()
@@ -203,9 +205,11 @@ void UProfileImpl::dumpGpuMemory()
         return;
     }
 
-    int usedMem, totalMem;
+    std::vector<int> usedMem, totalMem;
     m_gpuMonitor->getMemory(usedMem, totalMem);
-    write(ProfilingType::GPU_MEMORY, {std::to_string(usedMem), std::to_string(totalMem)});
+    for (size_t i = 0; i < usedMem.size(); ++i) {
+        write(ProfilingType::GPU_MEMORY, {std::to_string(i), std::to_string(usedMem[i]), std::to_string(totalMem[i])});
+    }
 }
 
 vector<float> UProfileImpl::getInstantCpuUsage()

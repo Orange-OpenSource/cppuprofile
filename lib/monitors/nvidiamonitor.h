@@ -30,8 +30,8 @@ public:
     UPROFAPI void start(int period) override;
     UPROFAPI void stop() override;
     UPROFAPI bool watching() const override;
-    UPROFAPI float getUsage() const override;
-    UPROFAPI void getMemory(int& usedMem, int& totalMem) const override;
+    UPROFAPI const std::vector<float>& getUsage() const override;
+    UPROFAPI void getMemory(std::vector<int>& usedMem, std::vector<int>& totalMem) const override;
 
 private:
     void watchGPU(int period);
@@ -40,9 +40,10 @@ private:
     mutable std::mutex m_mutex;
     std::unique_ptr<std::thread> m_watcherThread;
     bool m_watching = false;
-    int m_totalMem = 0;
-    int m_usedMem = 0;
-    float m_gpuUsage = 0.f;
+    size_t nGPUs_;
+    std::vector<int> m_totalMem;
+    std::vector<int> m_usedMem;
+    std::vector<float> m_gpuUsage;
 };
 
 }

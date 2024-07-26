@@ -7,6 +7,8 @@
 //
 // Author: Cédric CHEDALEUX <cedric.chedaleux@orange.com> et al.
 
+#include <vector>
+
 #ifndef IGPUMONITOR_H_
 #define IGPUMONITOR_H_
 
@@ -34,9 +36,9 @@ public:
     virtual bool watching() const = 0;
 
     // Usage should be in percentage
-    virtual float getUsage() const = 0;
+    virtual const std::vector<float>& getUsage() const = 0;
     // usedMem and totalMem should be returned as KiB
-    virtual void getMemory(int& usedMem, int& totalMem) const = 0;
+    virtual void getMemory(std::vector<int>& usedMem, std::vector<int>& totalMem) const = 0;
 };
 
 }

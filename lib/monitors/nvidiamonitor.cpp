@@ -24,28 +24,35 @@
 const string errorMsg = "Failed to monitor nvidia-smi process";
 
 #if defined(__linux__)
-int read_nvidia_smi_stdout(int fd, string& gpuUsage, string& usedMem, string& totalMem)
+int read_nvidia_smi_stdout(int fd, size_t nGPUs, std::vector<string>& gpuUsage, std::vector<string>& usedMem, std::vector<string>& totalMem)
 {
+    std::vector<string> lines;
     string line;
-    while (line.find('\n') == string::npos) { // full line read
+    for (size_t i = 0; i < nGPUs; ++i) { //read in one full line for every gpu in the system
         char buffer[4096];
         ssize_t count = read(fd, buffer, sizeof(buffer)); // if child process crashes, we gonna be blocked here forever
         if (count == -1) {
             return errno;
         } else if (count > 0) { // there is something to read
-            line += string(buffer, count);
+            lines.push_back(string(buffer, count));
         }
     }
+    for (auto& line : lines) {
+        // Remove colon to have only spaces and use istringstream
+        auto noSpaceEnd = remove(line.begin(), line.end(), ',');
+        if (noSpaceEnd == line.end()) { // output trace does not have comma so something went wrong with the command
+            return ENODATA;
+        }
 
-    // Remove colon to have only spaces and use istringstream
-    auto noSpaceEnd = remove(line.begin(), line.end(), ',');
-    if (noSpaceEnd == line.end()) { // output trace does not have comma so something went wrong with the command
-        return ENODATA;
-    }
-
-    line.erase(noSpaceEnd, line.end());
-    std::istringstream ss(line);
-    ss >> gpuUsage >> usedMem >> totalMem;
+        line.erase(noSpaceEnd, line.end());
+        std::istringstream ss(line);
+        std::string gpuIdx, temp_gpuUsage, temp_usedMem, temp_totalMem;
+        ss >> gpuIdx >> temp_gpuUsage >> temp_usedMem >> temp_totalMem;
+        size_t idx = static_cast<size_t>(std::stoull(gpuIdx));
+        gpuUsage[idx] = temp_gpuUsage; 
+        usedMem[idx] = temp_usedMem; 
+        totalMem[idx] = temp_totalMem;
+    }   
 
     return 0;
 }
@@ -53,6 +60,27 @@ int read_nvidia_smi_stdout(int fd, string& gpuUsage, string& usedMem, string& to
 
 uprofile::NvidiaMonitor::NvidiaMonitor()
 {
+    //query nvidia-smi to get the number of GPUs and initialize m_totalMem, m_usedMem, and m_gpuUsage vectors 
+    #if defined(__linux__)
+        try {
+            std::array<char, 128> buffer;
+            std::string result;
+            std::string cmd = "/usr/bin/nvidia-smi --query-gpu=count --format=csv,noheader,nounits";
+            std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+            if (!pipe) {
+                throw std::runtime_error("popen() failed!");
+            }
+            while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+                result += buffer.data();
+            }
+            nGPUs_ = static_cast<size_t>(std::stoull(result));
+            m_totalMem = std::vector<int>(nGPUs_, 0);
+            m_usedMem = std::vector<int>(nGPUs_, 0);
+            m_gpuUsage = std::vector<float>(nGPUs_, 0.0);
+        } catch (const std::exception& err) {
+            std::cerr << errorMsg << std::endl;
+        }
+    #endif
 }
 
 uprofile::NvidiaMonitor::~NvidiaMonitor()
@@ -70,13 +98,13 @@ void uprofile::NvidiaMonitor::stop()
     abortWatchGPU();
 }
 
-float uprofile::NvidiaMonitor::getUsage() const
+const std::vector<float>& uprofile::NvidiaMonitor::getUsage() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_gpuUsage;
 }
 
-void uprofile::NvidiaMonitor::getMemory(int& usedMem, int& totalMem) const
+void uprofile::NvidiaMonitor::getMemory(std::vector<int>& usedMem, std::vector<int>& totalMem) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     usedMem = m_usedMem;
@@ -94,7 +122,7 @@ void uprofile::NvidiaMonitor::watchGPU(int period)
     args[0] = (char*)"/usr/bin/nvidia-smi";
     string period_arg = "-lms=" + to_string(period); // lms stands for continuous watching
     args[1] = (char*)period_arg.c_str();
-    args[2] = (char*)"--query-gpu=utilization.gpu,memory.used,memory.total";
+    args[2] = (char*)"--query-gpu=index,utilization.gpu,memory.used,memory.total";
     args[3] = (char*)"--format=csv,noheader,nounits";
     args[4] = NULL;
     string output;
@@ -128,9 +156,9 @@ void uprofile::NvidiaMonitor::watchGPU(int period)
         m_watching = true;
         m_watcherThread = unique_ptr<std::thread>(new thread([stdout_fd, pid, this]() {
             while (watching()) {
-                string gpuUsage, usedMem, totalMem;
+                std::vector<string> gpuUsage(nGPUs_, ""), usedMem(nGPUs_, ""), totalMem(nGPUs_, "");
                 // if the child process crashes, an error is raised here and threads ends up
-                int err = read_nvidia_smi_stdout(stdout_fd, gpuUsage, usedMem, totalMem);
+                int err = read_nvidia_smi_stdout(stdout_fd, nGPUs_, gpuUsage, usedMem, totalMem);
                 if (err != 0) {
                     cerr << errorMsg << ": read_error = " << strerror(err) << endl;
                     unique_lock<mutex> lk(m_mutex);
@@ -140,10 +168,12 @@ void uprofile::NvidiaMonitor::watchGPU(int period)
                 }
 
                 unique_lock<mutex> lk(m_mutex);
-                m_gpuUsage = !gpuUsage.empty() ? stof(gpuUsage) : 0.f;
-                m_usedMem = !usedMem.empty() ? stoi(usedMem) * 1024 : 0;    // MiB to KiB
-                m_totalMem = !totalMem.empty() ? stoi(totalMem) * 1024 : 0; // MiB to KiB
-                lk.unlock();
+                for (size_t i = 0; i < nGPUs_; ++i) {
+                    m_gpuUsage[i] = !gpuUsage[i].empty() ? stof(gpuUsage[i]) : 0.f;
+                    m_usedMem[i] = !usedMem[i].empty() ? stoi(usedMem[i]) * 1024 : 0;    // MiB to KiB
+                    m_totalMem[i] = !totalMem[i].empty() ? stoi(totalMem[i]) * 1024 : 0; // MiB to KiB
+                    lk.unlock();
+                }
             }
         }));
     }
