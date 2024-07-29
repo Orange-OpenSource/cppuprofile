@@ -60,6 +60,10 @@ int read_nvidia_smi_stdout(int fd, size_t nGPUs, std::vector<string>& gpuUsage, 
         std::string gpuIdx, temp_gpuUsage, temp_usedMem, temp_totalMem;
         ss >> gpuIdx >> temp_gpuUsage >> temp_usedMem >> temp_totalMem;
         size_t idx = static_cast<size_t>(std::stoull(gpuIdx));
+        if (idx >= nGPUs) {
+            std::cerr << "GPU index out of range: " << idx << std::endl;
+            continue;  // Handle the error appropriately
+        }
         gpuUsage[idx] = temp_gpuUsage; 
         usedMem[idx] = temp_usedMem; 
         totalMem[idx] = temp_totalMem;
