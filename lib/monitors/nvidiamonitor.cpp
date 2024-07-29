@@ -28,6 +28,7 @@ const string errorMsg = "Failed to monitor nvidia-smi process";
 int read_nvidia_smi_stdout(int fd, size_t nGPUs, std::vector<string>& gpuUsage, std::vector<string>& usedMem, std::vector<string>& totalMem)
 {
     std::vector<string> lines;
+    string leftover;
     string line;
     for (size_t i = 0; i < nGPUs; ++i) { //read in one full line for every gpu in the system
         char buffer[4096];
@@ -35,8 +36,17 @@ int read_nvidia_smi_stdout(int fd, size_t nGPUs, std::vector<string>& gpuUsage, 
         if (count == -1) {
             return errno;
         } else if (count > 0) { // there is something to read
-            lines.push_back(string(buffer, count));
-        }
+            string data(buffer, count);
+            data = leftover + data;  // Prepend leftover from last read (sometimes vreaks up lines...)
+
+            size_t pos = 0;
+            while ((pos = data.find('\n')) != std::string::npos) {
+                string line = data.substr(0, pos);
+                lines.push_back(line);
+                data.erase(0, pos + 1);
+            }
+            leftover = data;  // Save any remaining part for the next read
+        }        
     }
     for (auto& line : lines) {
         // Remove colon to have only spaces and use istringstream
