@@ -27,10 +27,12 @@ const string errorMsg = "Failed to monitor nvidia-smi process";
 #if defined(__linux__)
 int read_nvidia_smi_stdout(int fd, size_t nGPUs, std::vector<string>& gpuUsage, std::vector<string>& usedMem, std::vector<string>& totalMem)
 {
+    std::cout << "inside read_nvidia_smi_stdout for " << nGPUs << " GPUs" << std::endl; 
     std::vector<string> lines;
     string leftover;
     string line;
     for (size_t i = 0; i < nGPUs; ++i) { //read in one full line for every gpu in the system
+        std::cout << "GPU " << i << std::endl; 
         char buffer[4096];
         ssize_t count = read(fd, buffer, sizeof(buffer)); // if child process crashes, we gonna be blocked here forever
         if (count == -1) {
@@ -39,9 +41,11 @@ int read_nvidia_smi_stdout(int fd, size_t nGPUs, std::vector<string>& gpuUsage, 
             string data(buffer, count);
             data = leftover + data;  // Prepend leftover from last read (sometimes vreaks up lines...)
 
+            std::cout << "read data = " << data << std::endl;
             size_t pos = 0;
             while ((pos = data.find('\n')) != std::string::npos) {
                 string line = data.substr(0, pos);
+                std::cout << "reduced line = " << line << std::endl;
                 lines.push_back(line);
                 data.erase(0, pos + 1);
             }
@@ -64,9 +68,11 @@ int read_nvidia_smi_stdout(int fd, size_t nGPUs, std::vector<string>& gpuUsage, 
             std::cerr << "GPU index out of range: " << idx << std::endl;
             continue;  // Handle the error appropriately
         }
+        std::cout << "Converted to metrics: " << idx << ", " << temp_gpuUsage << ", " << temp_usedMem << ", " << temp_totalMem << std::endl; 
         gpuUsage[idx] = temp_gpuUsage; 
         usedMem[idx] = temp_usedMem; 
         totalMem[idx] = temp_totalMem;
+        std::cout << "Finished setting vectors!" << std::endl;
     }   
 
     return 0;
@@ -78,6 +84,7 @@ uprofile::NvidiaMonitor::NvidiaMonitor()
     //query nvidia-smi to get the number of GPUs and initialize m_totalMem, m_usedMem, and m_gpuUsage vectors 
     #if defined(__linux__)
         try {
+            std::cout << "Trying to read in number of gpus" << std::endl;
             std::array<char, 128> buffer;
             std::string result;
             std::string cmd = "/usr/bin/nvidia-smi --query-gpu=count --format=csv,noheader,nounits";
@@ -89,6 +96,7 @@ uprofile::NvidiaMonitor::NvidiaMonitor()
                 result += buffer.data();
             }
             nGPUs_ = static_cast<size_t>(std::stoull(result));
+            std::cout << "nGPUs = " << nGPUs_ << std::endl;
             m_totalMem = std::vector<int>(nGPUs_, 0);
             m_usedMem = std::vector<int>(nGPUs_, 0);
             m_gpuUsage = std::vector<float>(nGPUs_, 0.0);
@@ -100,118 +108,179 @@ uprofile::NvidiaMonitor::NvidiaMonitor()
 
 uprofile::NvidiaMonitor::~NvidiaMonitor()
 {
-    stop();
+    // stop();
 }
 
-void uprofile::NvidiaMonitor::start(int period)
-{
-    watchGPU(period);
+// void uprofile::NvidiaMonitor::start(int period)
+// {
+//     watchGPU(period);
+// }
+
+// void uprofile::NvidiaMonitor::stop()
+// {
+//     abortWatchGPU();
+// }
+
+void uprofile::NvidiaMonitor::update_gpu_data() {
+    #if defined(__linux__)
+        try {
+            std::array<char, 128> buffer;
+            std::string result;
+            std::string cmd = "/usr/bin/nvidia-smi --query-gpu=index,utilization.gpu,memory.used,memory.total --format=csv,noheader,nounits";
+            std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+            if (!pipe) {
+                throw std::runtime_error("popen() failed!");
+            }
+            while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+                result += buffer.data();
+            }
+
+            std::istringstream ss(result); 
+            std::string line; 
+            while (getline(ss, line)) {
+                //(1) remove commas from line
+                auto noSpaceEnd = remove(line.begin(), line.end(), ',');
+                if (noSpaceEnd == line.end()) { // output trace does not have comma so something went wrong with the command
+                    std::cerr << "nvidia-smi call was incorrectly executed!" << std::endl;
+                    continue;
+                }
+                line.erase(noSpaceEnd, line.end());
+
+                //(2) read in element by element 
+                std::istringstream sss(line);
+                std::string gpuIdx, temp_gpuUsage, temp_usedMem, temp_totalMem; 
+                sss >> gpuIdx >> temp_gpuUsage >> temp_usedMem >> temp_totalMem; 
+                size_t idx = static_cast<size_t>(std::stoull(gpuIdx));
+                if (idx >= nGPUs_) {
+                    std::cerr << "GPU index out of range: " << idx << std::endl;
+                    continue;  // Handle the error appropriately
+                }
+                m_gpuUsage[idx] = !temp_gpuUsage.empty() ? stof(temp_gpuUsage) : 0.f;
+                m_usedMem[idx] = !temp_usedMem.empty() ? stoi(temp_usedMem) * 1024 : 0;    // MiB to KiB
+                m_totalMem[idx] = !temp_totalMem.empty() ? stoi(temp_totalMem) * 1024 : 0; // MiB to KiB
+            }
+        } catch (const std::exception& err) {
+            std::cerr << errorMsg << std::endl;
+        }
+    #endif
 }
 
-void uprofile::NvidiaMonitor::stop()
+const std::vector<float>& uprofile::NvidiaMonitor::getUsage()
 {
-    abortWatchGPU();
-}
-
-const std::vector<float>& uprofile::NvidiaMonitor::getUsage() const
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
+    update_gpu_data();
     return m_gpuUsage;
 }
 
-void uprofile::NvidiaMonitor::getMemory(std::vector<int>& usedMem, std::vector<int>& totalMem) const
+void uprofile::NvidiaMonitor::getMemory(std::vector<int>& usedMem, std::vector<int>& totalMem)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    update_gpu_data();
     usedMem = m_usedMem;
     totalMem = m_totalMem;
 }
 
-void uprofile::NvidiaMonitor::watchGPU(int period)
-{
-    if (m_watching) {
-        return;
-    }
+// void uprofile::NvidiaMonitor::watchGPU(int period) {
+//     #if defined(__linux__)
 
-#if defined(__linux__)
-    char* args[5];
-    args[0] = (char*)"/usr/bin/nvidia-smi";
-    string period_arg = "-lms=" + to_string(period); // lms stands for continuous watching
-    args[1] = (char*)period_arg.c_str();
-    args[2] = (char*)"--query-gpu=index,utilization.gpu,memory.used,memory.total";
-    args[3] = (char*)"--format=csv,noheader,nounits";
-    args[4] = NULL;
-    string output;
-    int pipes[2];
+//     #else
+//         cerr << errorMsg << endl;
+//     #endif
+// }
 
-    // Create the pipe
-    if (pipe(pipes) == -1) {
-        cerr << errorMsg << ": pipe creation failed" << endl;
-        return;
-    }
+// void uprofile::NvidiaMonitor::watchGPU(int period)
+// {
+//     std::cout << "Entering watchGPU" << std::endl; 
+//     if (m_watching) {
+//         return;
+//     }
 
-    // Create a child process for calling nvidia-smi
-    pid_t pid = fork();
+// #if defined(__linux__)
+//     char* args[5];
+//     args[0] = (char*)"/usr/bin/nvidia-smi";
+//     string period_arg = "-lms=" + to_string(period); // lms stands for continuous watching
+//     args[1] = (char*)period_arg.c_str();
+//     args[2] = (char*)"--query-gpu=index,utilization.gpu,memory.used,memory.total";
+//     args[3] = (char*)"--format=csv,noheader,nounits";
+//     args[4] = NULL;
+//     string output;
+//     int pipes[2];
 
-    switch (pid) {
-    case -1: /* Error */
-        cerr << errorMsg << ": process fork failed" << endl;
-        return;
-    case 0: /* We are in the child process */
-        while ((dup2(pipes[1], STDOUT_FILENO) == -1) && (errno == EINTR)) {
-        }
-        close(pipes[1]);
-        close(pipes[0]);
-        execv(args[0], args);
-        cerr << "Failed to execute '" << args[0] << "': " << strerror(errno) << endl; /* execl doesn't return unless there's an error */
-        exit(1);
-    default: /* We are in the parent process */
-        int stdout_fd = pipes[0];
+//     // Create the pipe
+//     if (pipe(pipes) == -1) {
+//         cerr << errorMsg << ": pipe creation failed" << endl;
+//         return;
+//     }
 
-        // Start a thread to retrieve the child process stdout
-        m_watching = true;
-        m_watcherThread = unique_ptr<std::thread>(new thread([stdout_fd, pid, this]() {
-            while (watching()) {
-                std::vector<string> gpuUsage(nGPUs_, ""), usedMem(nGPUs_, ""), totalMem(nGPUs_, "");
-                // if the child process crashes, an error is raised here and threads ends up
-                int err = read_nvidia_smi_stdout(stdout_fd, nGPUs_, gpuUsage, usedMem, totalMem);
-                if (err != 0) {
-                    cerr << errorMsg << ": read_error = " << strerror(err) << endl;
-                    unique_lock<mutex> lk(m_mutex);
-                    m_watching = false;
-                    lk.unlock();
-                    break;
-                }
+//     // Create a child process for calling nvidia-smi
+//     pid_t pid = fork();
 
-                unique_lock<mutex> lk(m_mutex);
-                for (size_t i = 0; i < nGPUs_; ++i) {
-                    m_gpuUsage[i] = !gpuUsage[i].empty() ? stof(gpuUsage[i]) : 0.f;
-                    m_usedMem[i] = !usedMem[i].empty() ? stoi(usedMem[i]) * 1024 : 0;    // MiB to KiB
-                    m_totalMem[i] = !totalMem[i].empty() ? stoi(totalMem[i]) * 1024 : 0; // MiB to KiB
-                    lk.unlock();
-                }
-            }
-        }));
-    }
-#else
-    cerr << errorMsg << endl;
-#endif
-}
+//     switch (pid) {
+//     case -1: /* Error */
+//         cerr << errorMsg << ": process fork failed" << endl;
+//         return;
+//     case 0: /* We are in the child process */
+//         while ((dup2(pipes[1], STDOUT_FILENO) == -1) && (errno == EINTR)) {
+//         }
+//         close(pipes[1]);
+//         close(pipes[0]);
+//         execv(args[0], args);
+//         cerr << "Failed to execute '" << args[0] << "': " << strerror(errno) << endl; /* execl doesn't return unless there's an error */
+//         exit(1);
+//     default: /* We are in the parent process */
+//         std::cout << "+++ Inside parent" << std::endl; 
+//         int stdout_fd = pipes[0];
 
-void uprofile::NvidiaMonitor::abortWatchGPU()
-{
-#if defined(__linux__)
-    if (m_watcherThread) {
-        unique_lock<mutex> lk(m_mutex);
-        m_watching = false;
-        lk.unlock();
-        m_watcherThread->join();
-        m_watcherThread.reset();
-    }
-#endif
-}
+//         // Start a thread to retrieve the child process stdout
+//         m_watching = true;
+//         std::cout << "+++ starting watcher" << std::endl; 
+//         m_watcherThread = unique_ptr<std::thread>(new thread([stdout_fd, pid, this]() {
+//             while (watching()) {
+//                 std::vector<string> gpuUsage(nGPUs_, ""), usedMem(nGPUs_, ""), totalMem(nGPUs_, "");
+//                 // if the child process crashes, an error is raised here and threads ends up
+//                 std::cout << "+++ calling read_nvidia_smi_stdout" << std::endl;
+//                 int err = read_nvidia_smi_stdout(stdout_fd, nGPUs_, gpuUsage, usedMem, totalMem);
+//                 if (err != 0) {
+//                     cerr << errorMsg << ": read_error = " << strerror(err) << endl;
+//                     unique_lock<mutex> lk(m_mutex);
+//                     m_watching = false;
+//                     lk.unlock();
+//                     break;
+//                 }
+//                 std::cout << "+++ success!" << std::endl;
 
-bool uprofile::NvidiaMonitor::watching() const
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return m_watching;
-}
+//                 unique_lock<mutex> lk(m_mutex);
+//                 for (size_t i = 0; i < nGPUs_; ++i) {
+//                     m_gpuUsage[i] = !gpuUsage[i].empty() ? stof(gpuUsage[i]) : 0.f;
+//                     m_usedMem[i] = !usedMem[i].empty() ? stoi(usedMem[i]) * 1024 : 0;    // MiB to KiB
+//                     m_totalMem[i] = !totalMem[i].empty() ? stoi(totalMem[i]) * 1024 : 0; // MiB to KiB
+
+//                     std::cout << "Setting m_gpuUsage[" << i << "] = " << m_gpuUsage[i] << std::endl; 
+//                     std::cout << "Setting m_usedMem[" << i << "] = " << m_usedMem[i] << std::endl; 
+//                     std::cout << "Setting m_totalMem[" << i << "] = " << m_totalMem[i] << std::endl; 
+//                 }
+//                 lk.unlock();
+//             }
+//         }));
+//     }
+// #else
+//     cerr << errorMsg << endl;
+// #endif
+// }
+
+// void uprofile::NvidiaMonitor::abortWatchGPU()
+// {
+// #if defined(__linux__)
+//     if (m_watcherThread) {
+//         unique_lock<mutex> lk(m_mutex);
+//         m_watching = false;
+//         lk.unlock();
+//         m_watcherThread->join();
+//         m_watcherThread.reset();
+//     }
+// #endif
+// }
+
+// bool uprofile::NvidiaMonitor::watching() const
+// {
+//     std::lock_guard<std::mutex> lock(m_mutex);
+//     return m_watching;
+// }

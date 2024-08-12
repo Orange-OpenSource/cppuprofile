@@ -27,19 +27,22 @@ public:
     UPROFAPI explicit NvidiaMonitor();
     UPROFAPI virtual ~NvidiaMonitor();
 
-    UPROFAPI void start(int period) override;
-    UPROFAPI void stop() override;
-    UPROFAPI bool watching() const override;
-    UPROFAPI const std::vector<float>& getUsage() const override;
-    UPROFAPI void getMemory(std::vector<int>& usedMem, std::vector<int>& totalMem) const override;
+    // UPROFAPI void start(int period) override;
+    // void start() override;
+    // UPROFAPI void stop() override;
+    // UPROFAPI bool watching() const override;
+    UPROFAPI const std::vector<float>& getUsage() override;
+    UPROFAPI void getMemory(std::vector<int>& usedMem, std::vector<int>& totalMem) override;
 
 private:
-    void watchGPU(int period);
-    void abortWatchGPU();
+    void update_gpu_data();
 
-    mutable std::mutex m_mutex;
-    std::unique_ptr<std::thread> m_watcherThread;
-    bool m_watching = false;
+    // void watchGPU(int period);
+    // void abortWatchGPU();
+
+    // mutable std::mutex m_mutex;
+    // std::unique_ptr<std::thread> m_watcherThread;
+    // bool m_watching = false;
     size_t nGPUs_;
     std::vector<int> m_totalMem;
     std::vector<int> m_usedMem;

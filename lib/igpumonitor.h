@@ -29,16 +29,17 @@ public:
     virtual ~IGPUMonitor() {}
 
     // Start monitoring
-    virtual void start(int period) = 0;
+    //virtual void start(int period) = 0;
+    // virtual void start() = 0;
     // Stop monitoring
-    virtual void stop() = 0;
-    // Return if monitor is currently watching data
-    virtual bool watching() const = 0;
+    // virtual void stop() = 0;
+    // // Return if monitor is currently watching data
+    // virtual bool watching() const = 0;
 
     // Usage should be in percentage
-    virtual const std::vector<float>& getUsage() const = 0;
+    virtual const std::vector<float>& getUsage() = 0;
     // usedMem and totalMem should be returned as KiB
-    virtual void getMemory(std::vector<int>& usedMem, std::vector<int>& totalMem) const = 0;
+    virtual void getMemory(std::vector<int>& usedMem, std::vector<int>& totalMem) = 0;
 };
 
 }
