@@ -12,9 +12,7 @@
 
 #include "api.h"
 #include "igpumonitor.h"
-#include <mutex>
 #include <string>
-#include <thread>
 #include <vector>
 
 using namespace std;
@@ -23,26 +21,20 @@ namespace uprofile
 {
 class NvidiaMonitor : public IGPUMonitor
 {
+    enum class Data {
+        Usage, TotalMem, UsedMem
+    };
+
 public:
     UPROFAPI explicit NvidiaMonitor();
     UPROFAPI virtual ~NvidiaMonitor();
 
-    // UPROFAPI void start(int period) override;
-    // void start() override;
-    // UPROFAPI void stop() override;
-    // UPROFAPI bool watching() const override;
     UPROFAPI const std::vector<float>& getUsage() override;
     UPROFAPI void getMemory(std::vector<int>& usedMem, std::vector<int>& totalMem) override;
 
 private:
-    void update_gpu_data();
+    void update_gpu_data(const std::vector<Data>& data);
 
-    // void watchGPU(int period);
-    // void abortWatchGPU();
-
-    // mutable std::mutex m_mutex;
-    // std::unique_ptr<std::thread> m_watcherThread;
-    // bool m_watching = false;
     size_t nGPUs_;
     std::vector<int> m_totalMem;
     std::vector<int> m_usedMem;

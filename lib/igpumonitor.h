@@ -28,14 +28,6 @@ class IGPUMonitor
 public:
     virtual ~IGPUMonitor() {}
 
-    // Start monitoring
-    //virtual void start(int period) = 0;
-    // virtual void start() = 0;
-    // Stop monitoring
-    // virtual void stop() = 0;
-    // // Return if monitor is currently watching data
-    // virtual bool watching() const = 0;
-
     // Usage should be in percentage
     virtual const std::vector<float>& getUsage() = 0;
     // usedMem and totalMem should be returned as KiB
