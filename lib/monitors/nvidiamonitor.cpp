@@ -13,6 +13,7 @@
 #include <iostream>
 #include <sstream>
 #include <memory>
+#include <array>
 
 const string errorMsg = "Failed to monitor nvidia-smi process";
 
