@@ -21,6 +21,10 @@ ELSE()
     add_compile_options(-Wall -Werror)
 ENDIF()
 
+IF (GPU_MONITOR_NVIDIA)
+  ADD_DEFINITIONS(-DGPU_MONITOR_NVIDIA)
+ENDIF()
+
 SET(Sample_SRCS
     main.cpp
 )
