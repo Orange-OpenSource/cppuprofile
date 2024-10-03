@@ -34,9 +34,9 @@ using namespace std::chrono;
 namespace uprofile
 {
 
-void start(const char* file)
+void start(const char* filepath, unsigned long long maxCapSize)
 {
-    UPROFILE_INSTANCE_CALL(start, file);
+    UPROFILE_INSTANCE_CALL(start, filepath, maxCapSize);
 }
 
 void stop()
