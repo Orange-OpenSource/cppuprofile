@@ -10,6 +10,7 @@
 #ifndef UPROFILEIMPL_H_
 #define UPROFILEIMPL_H_
 
+#include "eventsfile.h"
 #include "igpumonitor.h"
 #include "timestampunit.h"
 #include "util/cpumonitor.h"
@@ -40,7 +41,7 @@ public:
     virtual ~UProfileImpl();
 
     // Implementation
-    void start(const char* file);
+    void start(const char* filepath, unsigned long long maxCapSize = 0);
     void stop();
     void addGPUMonitor(IGPUMonitor* monitor);
     void removeGPUMonitor();
@@ -73,7 +74,7 @@ private:
 
     TimestampUnit m_tsUnit;
     std::map<std::string, unsigned long long> m_steps; // Store steps (title, start time)
-    std::ofstream m_file;
+    EventsFilePtr m_file = nullptr;
     Timer m_processMemoryMonitorTimer;
     Timer m_systemMemoryMonitorTimer;
     Timer m_cpuMonitorTimer;

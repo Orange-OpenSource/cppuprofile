@@ -29,9 +29,15 @@ namespace uprofile
 /**
  * @ingroup uprofile
  * @brief Start profiling to periodically record monitored events to a file
- * @param file: file path where events will be saved
+ * @param filepath: file path where events will be saved
+ * @param maxCapSize: maximum file size in bytes
+ *
+ * By default, the file is unbounded.
+ *
+ * If you have some storage constraints, set maxCapSize parameter for generating two rotating files (<file>_0.<ext> and <file>_1.<ext>)
+ * Each file will have a maximum size of maxCapSize/2 (In this mode, more recent events will override older events)
  */
-UPROFAPI void start(const char* file);
+UPROFAPI void start(const char* filepath, unsigned long long maxCapSize = 0);
 
 /**
  * @ingroup uprofile

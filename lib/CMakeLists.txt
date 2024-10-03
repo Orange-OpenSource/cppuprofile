@@ -41,6 +41,8 @@ SET(UProfile_PUBLIC_HEADERS
 SET(UProfile_IMPL
     uprofile.cpp
     uprofileimpl.cpp
+    eventsfile.h
+    eventsfile.cpp
     util/timer.cpp
     util/cpumonitor.cpp
 )

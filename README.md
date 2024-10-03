@@ -50,6 +50,14 @@ uprofile::timeBegin("my_custom_function");
 uprofile::timeEnd("my_custom_function");
 ```
 
+#### Limit the size of the profiling file
+
+```cpp
+uprofile::start("uprofile.log", 500000 /* max file size in bytes */);
+```
+
+It will generate two rotating files with the most recent events. With the above example, both files will be `uprofile_0.log` and `uprofile_1.log`.
+
 ### GPU monitoring
 
 The library also supports GPU metrics monitoring like usage and memory. Since GPU monitoring is specific to each vendor, an interface `IGPUMonitor` is available to abstract each vendor monitor system.
@@ -86,8 +94,8 @@ Here is the list of GPUs supported by `cppuprofile`
 The build process is based on CMake. Minimum version is 2.8.
 
 ```commandline
-$ cmake --configure . -B ../build-cppuprofile
-$ cmake --build ../build-cppuprofile
+$ cmake -Bbuild .
+$ cmake --build build
 ```
 
 ### Shared/dynamic library
@@ -106,7 +114,7 @@ If you want to disable profiling in Release mode or if you want to only enable p
 To disable the profiling:
 
 ```commandline
-$ cmake --configure . -B ../build-cppuprofile -DPROFILE_ENABLED=OFF
+$ cmake -Bbuild . -DPROFILE_ENABLED=OFF
 ```
 
 ## Tools
@@ -136,9 +144,9 @@ The project provides a C++ sample application called `uprof-sample`
 that shows how to use the `cppuprofile` library. You can build it with `SAMPLE_ENABLED` option:
 
 ```commandline
-$ cmake --configure . -B ../build-cppuprofile -DSAMPLE_ENABLED=ON
-$ cmake --build ../build-cppuprofile
-$ ../build-cppuprofile/sample/uprof-sample
+$ cmake -Bbuild . -DSAMPLE_ENABLED=ON
+$ cmake --build build
+$ ./build/sample/uprof-sample
 ```
 
 ## Windows support limitations

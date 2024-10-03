@@ -52,12 +52,9 @@ UProfileImpl::~UProfileImpl()
     removeGPUMonitor();
 }
 
-void UProfileImpl::start(const char* file)
+void UProfileImpl::start(const char* filepath, unsigned long long maxCapSize)
 {
-    m_file.open(file, std::ios::out);
-    if (!m_file.is_open()) {
-        std::cerr << "Failed to open file: " << file << std::endl;
-    }
+    m_file = make_shared<EventsFile>(filepath, maxCapSize);
 }
 
 void UProfileImpl::addGPUMonitor(IGPUMonitor* monitor)
@@ -226,7 +223,7 @@ void UProfileImpl::stop()
     if (m_gpuMonitor) {
         m_gpuMonitor->stop();
     }
-    m_file.close();
+    m_file.reset();
 }
 
 void UProfileImpl::setTimestampUnit(TimestampUnit tsUnit)
@@ -236,43 +233,37 @@ void UProfileImpl::setTimestampUnit(TimestampUnit tsUnit)
 
 void UProfileImpl::write(ProfilingType type, const std::list<std::string>& data)
 {
-    if (m_file.is_open()) {
-        const char csvSeparator = ';';
-        std::string strType;
-        switch (type) {
-        case ProfilingType::TIME_EXEC:
-            strType = "time_exec";
-            break;
-        case ProfilingType::TIME_EVENT:
-            strType = "time_event";
-            break;
-        case ProfilingType::PROCESS_MEMORY:
-            strType = "proc_mem";
-            break;
-        case ProfilingType::SYSTEM_MEMORY:
-            strType = "sys_mem";
-            break;
-        case ProfilingType::CPU:
-            strType = "cpu";
-            break;
-        case ProfilingType::GPU_USAGE:
-            strType = "gpu";
-            break;
-        case ProfilingType::GPU_MEMORY:
-            strType = "gpu_mem";
-            break;
-        default:
-            strType = "undefined";
-            break;
-        }
-        std::lock_guard<std::mutex> guard(m_fileMutex);
-        m_file << strType.c_str() << csvSeparator << getTimestamp();
-        for (auto it = data.cbegin(); it != data.cend(); ++it) {
-            m_file << csvSeparator << *it;
-        }
-        m_file << "\n";
-        m_file.flush();
+    if (!m_file) {
+        return;
     }
+    std::string strType;
+    switch (type) {
+    case ProfilingType::TIME_EXEC:
+        strType = "time_exec";
+        break;
+    case ProfilingType::TIME_EVENT:
+        strType = "time_event";
+        break;
+    case ProfilingType::PROCESS_MEMORY:
+        strType = "proc_mem";
+        break;
+    case ProfilingType::SYSTEM_MEMORY:
+        strType = "sys_mem";
+        break;
+    case ProfilingType::CPU:
+        strType = "cpu";
+        break;
+    case ProfilingType::GPU_USAGE:
+        strType = "gpu";
+        break;
+    case ProfilingType::GPU_MEMORY:
+        strType = "gpu_mem";
+        break;
+    default:
+        strType = "undefined";
+        break;
+    }
+    m_file->write(strType, getTimestamp(), data);
 }
 
 unsigned long long UProfileImpl::getTimestamp() const
