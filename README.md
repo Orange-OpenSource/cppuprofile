@@ -50,6 +50,14 @@ uprofile::timeBegin("my_custom_function");
 uprofile::timeEnd("my_custom_function");
 ```
 
+#### Limit the size of the profiling file
+
+```cpp
+uprofile::start("uprofile.log", 500000 /* max file size in bytes */);
+```
+
+It will generate two rotating files with the most recent events. With the above example, both files will be `uprofile_0.log` and `uprofile_1.log`.
+
 ### GPU monitoring
 
 The library also supports GPU metrics monitoring like usage and memory. Since GPU monitoring is specific to each vendor, an interface `IGPUMonitor` is available to abstract each vendor monitor system.
