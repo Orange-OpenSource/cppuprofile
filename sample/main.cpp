@@ -11,6 +11,9 @@
 #include <stdlib.h>
 #include <thread>
 #include <uprofile.h>
+#if defined(GPU_MONITOR_NVIDIA)
+#include <monitors/nvidiamonitor.h>
+#endif
 
 void printSystemMemory()
 {
@@ -32,6 +35,11 @@ int main(int argc, char* argv[])
     printf(")\n");
 
     // --- START MONITORING ---
+#if defined(GPU_MONITOR_NVIDIA)
+    uprofile::addGPUMonitor(new uprofile::NvidiaMonitor);
+    uprofile::startGPUMemoryMonitoring(200);
+    uprofile::startGPUUsageMonitoring(200);
+#endif
     uprofile::startCPUUsageMonitoring(200);
     uprofile::startSystemMemoryMonitoring(200);
     uprofile::startProcessMemoryMonitoring(200);

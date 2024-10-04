@@ -10,9 +10,9 @@
 
 This project provides a tiny C++ profiling library for monitoring:
 * execution time
-* CPU usage
+* CPU(s) usage
 * memory usage
-* GPU usage and memory
+* GPU(s) usage and memory
 
 This library aims at collecting metrics on embedded devices to monitor device
 performance while operating heavy tasks or booting for example. Those metrics can
@@ -69,10 +69,12 @@ To monitor a specific GPU, you must subclass `IGPUMonitor`:
 
 class MyGPUMonitor: public uprofile::IGPUMonitor {
 public:
-    float getUsage() override;
-    void getMemory(int& usedMem, int& totalMem) override;
+    const std::vector<float>& getUsage() const override;
+    void getMemory(std::vector<int>& usedMem, std::vector<int>& totalMem) override;
 }
 ```
+
+As you can see from the interface methods, `ccpuprofile` **supports multi-gpu monitoring**.
 
 And then inject it at runtime to the `uprofile` monitoring system:
 

@@ -20,32 +20,51 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #endif
+#include <memory>
 
+using namespace std;
+
+const string nvidiaSmiCmdName = "/usr/bin/nvidia-smi";
 const string errorMsg = "Failed to monitor nvidia-smi process";
 
+struct RawMetric {
+    string index;
+    string usage;
+    string usedMem;
+    string totalMem;
+};
+
 #if defined(__linux__)
-int read_nvidia_smi_stdout(int fd, string& gpuUsage, string& usedMem, string& totalMem)
+int read_nvidia_smi_stdout(int fd, vector<RawMetric>& metrics)
 {
-    string line;
-    while (line.find('\n') == string::npos) { // full line read
-        char buffer[4096];
-        ssize_t count = read(fd, buffer, sizeof(buffer)); // if child process crashes, we gonna be blocked here forever
-        if (count == -1) {
-            return errno;
-        } else if (count > 0) { // there is something to read
-            line += string(buffer, count);
+    size_t nbCollected = 0;
+    while (nbCollected < metrics.size()) {
+        string line;
+
+        // nvidia-smi dumps metrics for each GPU line by line
+        // so read the stdout line by line and fill the input metrics buffer
+        while (line.find('\n') == string::npos) { // full line read
+            char buffer[4096];
+            ssize_t count = read(fd, buffer, sizeof(buffer)); // if child process crashes, we gonna be blocked here forever
+            if (count == -1) {
+                return errno;
+            } else if (count > 0) { // there is something to read
+                line += string(buffer, count);
+            }
         }
-    }
 
-    // Remove colon to have only spaces and use istringstream
-    auto noSpaceEnd = remove(line.begin(), line.end(), ',');
-    if (noSpaceEnd == line.end()) { // output trace does not have comma so something went wrong with the command
-        return ENODATA;
+        // Remove colon to have only spaces and use istringstream
+        auto noSpaceEnd = remove(line.begin(), line.end(), ',');
+        if (noSpaceEnd == line.end()) { // output trace does not have comma so something went wrong with the command
+            return ENODATA;
+        }
+        line.erase(noSpaceEnd, line.end());
+        istringstream ss(line);
+        RawMetric metric;
+        ss >> metric.index >> metric.usage >> metric.usedMem >> metric.totalMem;
+        metrics[nbCollected] = metric;
+        nbCollected++;
     }
-
-    line.erase(noSpaceEnd, line.end());
-    std::istringstream ss(line);
-    ss >> gpuUsage >> usedMem >> totalMem;
 
     return 0;
 }
@@ -53,6 +72,29 @@ int read_nvidia_smi_stdout(int fd, string& gpuUsage, string& usedMem, string& to
 
 uprofile::NvidiaMonitor::NvidiaMonitor()
 {
+    // Place nvidia-smi command to retrieve number of GPUs
+    // to initialize usage and memsvectors
+    try {
+        char buffer[128];
+        string result = "";
+        string cmd = nvidiaSmiCmdName;
+        cmd += " --query-gpu=count --format=csv,noheader,nounits";
+        FILE* pipe = popen(cmd.c_str(), "r");
+        if (!pipe) {
+            throw runtime_error("popen() failed!");
+        }
+        while (!feof(pipe)) {
+            if (fgets(buffer, 128, pipe) != NULL)
+                result += buffer;
+        }
+        pclose(pipe);
+        m_nbGPUs = static_cast<size_t>(std::stoull(result));
+        m_totalMems = vector<int>(m_nbGPUs, 0);
+        m_usedMems = vector<int>(m_nbGPUs, 0);
+        m_gpuUsages = vector<float>(m_nbGPUs, 0.0);
+    } catch (const exception& err) {
+        cerr << errorMsg << endl;
+    }
 }
 
 uprofile::NvidiaMonitor::~NvidiaMonitor()
@@ -70,17 +112,17 @@ void uprofile::NvidiaMonitor::stop()
     abortWatchGPU();
 }
 
-float uprofile::NvidiaMonitor::getUsage() const
+const std::vector<float>& uprofile::NvidiaMonitor::getUsage() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-    return m_gpuUsage;
+    return m_gpuUsages;
 }
 
-void uprofile::NvidiaMonitor::getMemory(int& usedMem, int& totalMem) const
+void uprofile::NvidiaMonitor::getMemory(std::vector<int>& usedMem, std::vector<int>& totalMem) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-    usedMem = m_usedMem;
-    totalMem = m_totalMem;
+    usedMem = m_usedMems;
+    totalMem = m_totalMems;
 }
 
 void uprofile::NvidiaMonitor::watchGPU(int period)
@@ -94,7 +136,7 @@ void uprofile::NvidiaMonitor::watchGPU(int period)
     args[0] = (char*)"/usr/bin/nvidia-smi";
     string period_arg = "-lms=" + to_string(period); // lms stands for continuous watching
     args[1] = (char*)period_arg.c_str();
-    args[2] = (char*)"--query-gpu=utilization.gpu,memory.used,memory.total";
+    args[2] = (char*)"--query-gpu=index,utilization.gpu,memory.used,memory.total";
     args[3] = (char*)"--format=csv,noheader,nounits";
     args[4] = NULL;
     string output;
@@ -128,9 +170,9 @@ void uprofile::NvidiaMonitor::watchGPU(int period)
         m_watching = true;
         m_watcherThread = unique_ptr<std::thread>(new thread([stdout_fd, pid, this]() {
             while (watching()) {
-                string gpuUsage, usedMem, totalMem;
+                vector<RawMetric> metrics(m_nbGPUs);
                 // if the child process crashes, an error is raised here and threads ends up
-                int err = read_nvidia_smi_stdout(stdout_fd, gpuUsage, usedMem, totalMem);
+                int err = read_nvidia_smi_stdout(stdout_fd, metrics);
                 if (err != 0) {
                     cerr << errorMsg << ": read_error = " << strerror(err) << endl;
                     unique_lock<mutex> lk(m_mutex);
@@ -140,9 +182,13 @@ void uprofile::NvidiaMonitor::watchGPU(int period)
                 }
 
                 unique_lock<mutex> lk(m_mutex);
-                m_gpuUsage = !gpuUsage.empty() ? stof(gpuUsage) : 0.f;
-                m_usedMem = !usedMem.empty() ? stoi(usedMem) * 1024 : 0;    // MiB to KiB
-                m_totalMem = !totalMem.empty() ? stoi(totalMem) * 1024 : 0; // MiB to KiB
+                for (size_t i = 0; i < metrics.size(); ++i) {
+                    const auto& m = metrics[i];
+                    size_t idx = stoull(m.index);
+                    m_gpuUsages[idx] = !m.usage.empty() ? stof(m.usage) : 0.f;
+                    m_usedMems[idx] = !m.usedMem.empty() ? stoi(m.usedMem) * 1024 : 0;    // MiB to KiB
+                    m_totalMems[idx] = !m.totalMem.empty() ? stoi(m.totalMem) * 1024 : 0; // MiB to KiB
+                }
                 lk.unlock();
             }
         }));

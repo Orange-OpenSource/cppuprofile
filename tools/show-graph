@@ -95,7 +95,7 @@ def create_cpu_graphs(df):
 
 
 def create_sys_mem_graphs(df):
-    # 'sys_mem' metrics (format is 'mem:<timestamp>:<total>:<available>:<free>')
+    # 'sys_mem' metrics (format is 'sys_mem:<timestamp>:<total>:<available>:<free>')
     if df.empty:
         return None
 
@@ -108,7 +108,7 @@ def create_sys_mem_graphs(df):
 
 
 def create_proc_mem_graphs(df):
-    # 'proc_mem' metrics (format is 'mem:<timestamp>:<rss>:<shared>')
+    # 'proc_mem' metrics (format is 'proc_mem:<timestamp>:<rss>:<shared>')
     if df.empty:
         return None
 
@@ -121,27 +121,34 @@ def create_proc_mem_graphs(df):
 
 
 def create_gpu_mem_graphs(df):
-    # 'gpu_mem' metrics (format is 'gpu_mem:<timestamp>:<total>:<used>')
+    # 'gpu_mem' metrics (format is 'gpu_mem:<timestamp>:<gpu_number>:<total>:<used>')
     if df.empty:
         return None
 
     names = ["Used", "Total"]
-    for index in range(2):
-        yield go.Scatter(x=pd.to_datetime(df['timestamp'], unit='ms'),
-                         y=(pd.to_numeric(df["extra_{}".format(index + 1)], downcast="integer") / 1024),
-                         name=names[index],
-                         showlegend=True)
+
+    gpus = pd.unique(df['extra_1'])
+    for gpu in gpus:
+        gpu_df = df[df['extra_1'] == gpu]
+        for index in range(2):
+            yield go.Scatter(x=pd.to_datetime(gpu_df['timestamp'], unit='ms'),
+                             y=(pd.to_numeric(gpu_df["extra_{}".format(index + 2)], downcast="integer") / 1024),
+                             name="GPU {} {}".format(gpu, names[index]),
+                             showlegend=True)
 
 
 def create_gpu_usage_graphs(df):
-    # 'gpu' metrics (format is 'gpu:<timestamp>:<percentage_usage>')
+    # 'gpu' metrics (format is 'gpu:<timestamp>:<gpu_number>:<percentage_usage>')
     if df.empty:
         return None
 
-    yield go.Scatter(x=pd.to_datetime(df['timestamp'], unit='ms'),
-                     y=pd.to_numeric(df['extra_1']),
-                     name="GPU usage",
-                     showlegend=True)
+    gpus = pd.unique(df['extra_1'])
+    for gpu in gpus:
+        gpu_df = df[df['extra_1'] == gpu]
+        yield go.Scatter(x=pd.to_datetime(gpu_df['timestamp'], unit='ms'),
+                         y=pd.to_numeric(gpu_df['extra_2']),
+                         name="GPU {} usage".format(gpu),
+                         showlegend=True)
 
 
 def build_graphs(input_files, metrics):
@@ -165,7 +172,10 @@ def build_graphs(input_files, metrics):
     global_df = pd.DataFrame()
     for input in input_files:
         with open(input) as f:
-            global_df = pd.concat([global_df, read(f)])
+            global_df = pd.concat([global_df, read(f)], sort=True)
+
+    # Make sure data are sorted by ascending timestamp
+    global_df.sort_values('timestamp')
 
     for index, metric in enumerate(metrics):
         row_index = index + 1
