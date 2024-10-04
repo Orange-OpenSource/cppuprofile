@@ -10,11 +10,13 @@
 #ifndef IGPUMONITOR_H_
 #define IGPUMONITOR_H_
 
+#include <vector>
+
 namespace uprofile
 {
 
 /**
- * Interface to implement for monitoring GPU usage and memory
+ * Interface to implement for monitoring GPU(s) usage and memory
  *
  * No generic abstraction of GPU metrics exists
  * on Linux nor Windows. So specific IGPUMonitor class should
@@ -33,10 +35,10 @@ public:
     // Return if monitor is currently watching data
     virtual bool watching() const = 0;
 
-    // Usage should be in percentage
-    virtual float getUsage() const = 0;
-    // usedMem and totalMem should be returned as KiB
-    virtual void getMemory(int& usedMem, int& totalMem) const = 0;
+    // Usages should be in percentage
+    virtual const std::vector<float>& getUsage() const = 0;
+    // usedMems and totalMems should be returned as KiB
+    virtual void getMemory(std::vector<int>& usedMem, std::vector<int>& totalMem) const = 0;
 };
 
 }
