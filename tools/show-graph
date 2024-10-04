@@ -172,7 +172,10 @@ def build_graphs(input_files, metrics):
     global_df = pd.DataFrame()
     for input in input_files:
         with open(input) as f:
-            global_df = pd.concat([global_df, read(f)])
+            global_df = pd.concat([global_df, read(f)], sort=True)
+
+    # Make sure data are sorted by ascending timestamp
+    global_df.sort_values('timestamp')
 
     for index, metric in enumerate(metrics):
         row_index = index + 1
