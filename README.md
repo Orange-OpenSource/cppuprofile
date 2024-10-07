@@ -8,6 +8,8 @@
 ![Windows](https://img.shields.io/badge/Windows-partial_support-orange?&logo=windows&logoColor=white)
 ![MacOS](https://img.shields.io/badge/MacOS-not_tested-orange?&logo=apple&logoColor=white)
 
+![Python Bindind](https://img.shields.io/badge/python%20binding-ok-green?logo=python)
+
 This project provides a tiny C++ profiling library for monitoring:
 * execution time
 * CPU(s) usage
@@ -150,6 +152,42 @@ $ cmake -Bbuild . -DSAMPLE_ENABLED=ON
 $ cmake --build build
 $ ./build/sample/uprof-sample
 ```
+
+## Bindings
+
+### Python
+
+A python binding `pyuprofile` is available for exposing `cppuprofile` library APIs to Python.
+
+#### Build the python module
+
+`pyuprofile` depends on `PyBind11`, so you need to install this library first:
+
+For Ubuntu:
+
+```
+$ sudo apt install python-pybind11
+```
+
+Then, to build and install the module in your system
+
+```
+$ cd bindings/python
+$ pip install .
+```
+
+#### Build the python module with NVIDIA GPU monitoring
+
+```
+$ CMAKE_COMMON_VARIABLES="-DGPU_MONITOR_NVIDIA=ON" pip install .
+```
+
+#### Use `pyuprofile` from python
+
+```
+$ python bindings/python/sample.py
+```
+
 
 ## Windows support limitations
 

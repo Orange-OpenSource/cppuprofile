@@ -76,7 +76,7 @@ def create_gantt_graph(df):
     :return: graph
     """
     size = len(df['Start'])
-    colors = px.colors.sample_colorscale("turbo", [n / (size - 1) for n in range(size)])
+    colors = px.colors.sample_colorscale("turbo", [n / size for n in range(size)])
     return ff.create_gantt(df, colors=colors, show_colorbar=True, showgrid_x=True, showgrid_y=True,
                            show_hover_fill=True)
 
