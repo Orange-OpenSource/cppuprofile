@@ -56,11 +56,11 @@ void EventsFile::write(const std::string& event, unsigned long long timestamp, c
     string line = ss.str();
 
     // Total size of all rotating files should never exceed the defined max cap size
+    std::lock_guard<std::mutex> guard(m_fileMutex);
     if (m_maxCapSize > 0 && m_currentFileSize + line.size() > m_maxCapSize / ROTATING_FILES_NUMBER) {
         rotateFile();
     }
 
-    std::lock_guard<std::mutex> guard(m_fileMutex);
     m_file << line;
     m_file.flush();
     m_currentFileSize += line.size();
