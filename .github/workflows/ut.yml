@@ -1,0 +1,39 @@
+name: Unit tests
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential
+
+      - name: Configure CMake
+        run: |
+          cmake -Bbuild -DTEST_ENABLED=ON -DSAMPLE_ENABLED=ON .
+
+      - name: Build project
+        run: |
+          cmake --build build
+      
+      - name: Run unit tests
+        run: |
+          ./build/tests/uprof-tests --reporter JUnit::out=test-results.xml --reporter console::out=-::colour-mode=ansi --success
+
+      - name: Test report
+        uses: dorny/test-reporter@v2
+        if: ${{ !cancelled() }}
+        with:
+          name: Unit Tests
+          path: test-results.xml
+          reporter: java-junit
