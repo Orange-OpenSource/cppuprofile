@@ -28,7 +28,6 @@ public:
 
 private:
     static size_t getNumberOfCPUCores();
-    static void extractCpuTimes(const string& cpuInfo, size_t& idleTime, size_t& totalTime);
 
     size_t m_nbCpus;
     // Store the last idle and total time for each CPU
