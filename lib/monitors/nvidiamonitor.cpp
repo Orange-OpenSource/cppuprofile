@@ -164,11 +164,12 @@ void uprofile::NvidiaMonitor::watchGPU(int period)
         cerr << "Failed to execute '" << args[0] << "': " << strerror(errno) << endl; /* execl doesn't return unless there's an error */
         exit(1);
     default: /* We are in the parent process */
+        m_smiPid = pid;
         int stdout_fd = pipes[0];
 
         // Start a thread to retrieve the child process stdout
         m_watching = true;
-        m_watcherThread = unique_ptr<std::thread>(new thread([stdout_fd, pid, this]() {
+        m_watcherThread = unique_ptr<std::thread>(new thread([stdout_fd, this]() {
             while (watching()) {
                 vector<RawMetric> metrics(m_nbGPUs);
                 // if the child process crashes, an error is raised here and threads ends up
@@ -207,6 +208,8 @@ void uprofile::NvidiaMonitor::abortWatchGPU()
         lk.unlock();
         m_watcherThread->join();
         m_watcherThread.reset();
+        kill(m_smiPid, SIGKILL);
+        waitpid(m_smiPid, NULL, 0);
     }
 #endif
 }
