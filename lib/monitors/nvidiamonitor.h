@@ -42,6 +42,8 @@ private:
     std::vector<int> m_usedMems;
     std::vector<float> m_gpuUsages;
     size_t m_nbGPUs = 0;
+    pid_t m_smiPid = -1;
+
 };
 
 }
