@@ -58,8 +58,8 @@ def gen_time_exec_df(df):
     if df.empty:
         return None
     # 'time_exec' format is 'time_exec:<end_timestamp>:<start_timestamp>:<task_name>')
-    time_exec_df = df[['extra_2', 'extra_1', 'timestamp']].copy()
-    time_exec_df.rename(columns={"extra_2": "Task", "extra_1": "Start", "timestamp": "Finish"}, inplace=True)
+    time_exec_df = df[['timestamp', 'extra_1', 'extra_2']].copy()
+    time_exec_df.rename(columns={"timestamp": "Finish",  "extra_2": "Task", "extra_1": "Start"}, inplace=True)
     time_exec_df['Description'] = time_exec_df.apply(lambda row: "Task: {} (duration = {} ms)"
                                                      .format(row['Task'], int(row['Finish']) - int(row['Start'])),
                                                      axis=1)
@@ -77,8 +77,7 @@ def create_gantt_graph(df):
     """
     size = len(df['Start'])
     colors = px.colors.sample_colorscale("turbo", [n / size for n in range(size)])
-    return ff.create_gantt(df, colors=colors, show_colorbar=True, showgrid_x=True, showgrid_y=True,
-                           show_hover_fill=True)
+    return px.timeline(df, color=colors, x_start="Start", x_end="Finish", y="Task", hover_name="Description")
 
 
 def create_cpu_graphs(df):
@@ -212,9 +211,10 @@ def build_graphs(input_files, metrics):
 
     figs.update_layout(
         height=1200,
-        xaxis_tickformat='%M:%S',
         showlegend=False
     )
+    figs.update_xaxes(type="date", tickformat='%Y-%m-%d %H:%M:%S.%L')
+
 
     return figs
 
