@@ -10,6 +10,7 @@
 #include "cpumonitor.h"
 #include <fstream>
 #include <sstream>
+#include <regex>
 
 using namespace std;
 
@@ -39,27 +40,10 @@ size_t uprofile::CpuMonitor::getNumberOfCPUCores()
     return nbCores;
 }
 
-void uprofile::CpuMonitor::extractCpuTimes(const string& cpuInfo, size_t& idleTime, size_t& totalTime)
-{
-    // Remove 'cpu<index' word and
-    // extract the idle time and sum all other times
-    size_t spacePos = cpuInfo.find(' ');
-    if (spacePos == string::npos) {
-        return;
-    }
-
-    stringstream times(cpuInfo.substr(spacePos + 1));
-    int index = 0;
-    for (size_t time; times >> time; ++index) {
-        if (index == 3) { // idle time i s the 4th param
-            idleTime = time;
-        }
-        totalTime += time;
-    }
-}
-
 vector<float> uprofile::CpuMonitor::getUsage()
 {
+    std::regex pattern(R"(^(cpu\d+)\s+(.*)$)");
+    std::smatch match;
     vector<float> usages(m_nbCpus, 0);
 #if defined(__linux__)
     ifstream procStat("/proc/stat");
@@ -69,29 +53,30 @@ vector<float> uprofile::CpuMonitor::getUsage()
     // cpu0 1132 34 1441 11311718 3675 127 438
     // cpu1 1123 0 849 11313845 2614 0 18
     // ...
-    // Each numbers represents the amount of time the CPU has spent performing
-    // different kind of work
-
-    for (size_t cpuIndex = 0; cpuIndex < m_nbCpus; ++cpuIndex) {
-        string cpuName("cpu");
-        cpuName += to_string(cpuIndex);
-
-        // Look in /proc/stack the CPU info
-        string line;
-        while (getline(procStat, line)) {
-            if (line.find(cpuName) != std::string::npos) {
-                size_t idleTime = 0, totalTime = 0;
-                extractCpuTimes(line, idleTime, totalTime);
-
-                // To compute CPU load, we compute the time the CPU has been idle since the last read.
-                float cpuLoad = 100.0 * (1.0 - (float)(idleTime - m_lastIdleTimes[cpuIndex]) / (totalTime - m_lastTotalTimes[cpuIndex]));
-                usages[cpuIndex] = cpuLoad;
-
-                // Save the times value for the next read
-                m_lastIdleTimes[cpuIndex] = idleTime;
-                m_lastTotalTimes[cpuIndex] = totalTime;
-                break;
+    // Each number represents the amount of time the CPU has spent performing
+    // different kinds of work
+    // Extract from /proc/stat the CPU idle time and tht total time
+    string line;
+    while (getline(procStat, line)) {
+        if (std::regex_search(line, match, pattern)) {
+            size_t cpuIndex = stoi(match[1].str().substr(3)); // Extract the CPU index from "cpuX"
+            size_t idleTime = 0, totalTime = 0;
+            std::stringstream times(match[2].str());
+            int index = 0;
+            for (size_t time = 0; times >> time; ++index) {
+                if (index == 3) { // idle time is the 4th param
+                    idleTime = time;
+                }
+                totalTime += time;
             }
+
+            // To compute CPU load, we compute the time the CPU has been idle since the last read.
+            float cpuLoad = 100.0 * (1.0 - (float)(idleTime - m_lastIdleTimes[cpuIndex]) / (totalTime - m_lastTotalTimes[cpuIndex]));
+            usages[cpuIndex] = cpuLoad;
+
+            // Save the times value for the next read
+            m_lastIdleTimes[cpuIndex] = idleTime;
+            m_lastTotalTimes[cpuIndex] = totalTime;
         }
     }
 #endif
