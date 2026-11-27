@@ -33,8 +33,8 @@ public:
 
 private:
     unique_ptr<thread> m_th;
-    bool m_running;
-    int m_interval;
+    bool m_running = false;
+    int m_interval = 0;
     mutable std::mutex m_mutex;
     std::function<void(void)> m_timeout;
 };
