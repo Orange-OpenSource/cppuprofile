@@ -76,7 +76,7 @@ public:
 }
 ```
 
-As you can see from the interface methods, `ccpuprofile` **supports multi-gpu monitoring**.
+As you can see from the interface methods, `cppuprofile` **supports multi-gpu monitoring**.
 
 And then inject it at runtime to the `uprofile` monitoring system:
 
@@ -95,7 +95,7 @@ Here is the list of GPUs supported by `cppuprofile`
 
 ## Build
 
-The build process is based on CMake. Minimum version is 2.8.
+The build process is based on CMake.
 
 ```commandline
 $ cmake -Bbuild .
